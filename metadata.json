@@ -1,0 +1,5 @@
+{
+  "name": "NHL '94 Banner Patcher",
+  "description": "A utility to patch Sega Genesis NHL '94 ROMs with original NHL '92 team banners and mini logos.",
+  "requestFramePermissions": []
+}
