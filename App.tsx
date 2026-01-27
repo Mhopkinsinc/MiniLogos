@@ -2,18 +2,24 @@ import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import SidebarControls from './components/SidebarControls';
 import Workspace from './components/Workspace';
+import DebugPanel from './components/DebugPanel';
 import { PatcherMode, PatchConfig, RomFile } from './types';
 import { patchRom, readFileAsArrayBuffer } from './services/patcherService';
 import { Icon } from './components/Icons';
 
+// Check if we're in development mode
+const isDev = import.meta.env.DEV;
+
 const App: React.FC = () => {
   // Navigation State
   const [activeTab, setActiveTab] = useState('Preview');
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // App State
   const [currentFile, setCurrentFile] = useState<RomFile | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [downloadFilename, setDownloadFilename] = useState<string>('patched.bin');
   const [error, setError] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(true);
   
@@ -49,9 +55,10 @@ const App: React.FC = () => {
 
     try {
       const buffer = await readFileAsArrayBuffer(currentFile.data);
-      const patchedBlob = await patchRom(buffer, config);
-      const url = URL.createObjectURL(patchedBlob);
+      const result = await patchRom(buffer, config, currentFile.name);
+      const url = URL.createObjectURL(result.blob);
       setDownloadUrl(url);
+      setDownloadFilename(result.filename);
     } catch (err) {
       console.error(err);
       setError("An error occurred while patching the ROM.");
@@ -72,7 +79,8 @@ const App: React.FC = () => {
       return (
         <Workspace 
           config={config} 
-          downloadUrl={downloadUrl} 
+          downloadUrl={downloadUrl}
+          downloadFilename={downloadFilename}
           fileLoaded={!!currentFile} 
           onReset={handleReset}
           showInstructions={showInstructions}
@@ -117,6 +125,20 @@ const App: React.FC = () => {
       )}
       
       {renderContent()}
+
+      {/* Debug Panel - Only shown in dev mode */}
+      {isDev && (
+        <>
+          <button
+            onClick={() => setShowDebugPanel(true)}
+            className="fixed bottom-4 right-4 z-40 bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-lg shadow-lg text-xs font-medium flex items-center gap-2 transition-colors"
+            title="Open WASM Debug Panel"
+          >
+            <span>🐛</span> Debug FS
+          </button>
+          <DebugPanel isOpen={showDebugPanel} onClose={() => setShowDebugPanel(false)} />
+        </>
+      )}
     </Layout>
   );
 };

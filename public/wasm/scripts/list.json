@@ -1,0 +1,12 @@
+[
+  "macros.mac",
+  "utilities.asm",
+  "minilogos/banners_code.asm",
+  "minilogos/banners_data.asm",
+  "minilogos/banners_hijacks.asm",
+  "minilogos/TeamBlocks.jim_28teams_banners_94_tilesize_clean_base.jim",
+  "minilogos/TeamBlocks.jim_28teams_LogoOnly.jim",
+  "minilogos/GoodWorkingBackup/minilogos.asm",
+  "minilogos/GoodWorkingBackup/minilogoshijack.asm",
+  "minilogos/GoodWorkingBackup/patch.asm"
+]

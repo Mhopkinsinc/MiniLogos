@@ -10,6 +10,7 @@ import InstructionsModal from './InstructionsModal';
 interface WorkspaceProps {
   config: PatchConfig;
   downloadUrl: string | null;
+  downloadFilename: string;
   fileLoaded: boolean;
   onReset: () => void;
   showInstructions: boolean;
@@ -41,7 +42,8 @@ const PreviewCard: React.FC<{ title: string; src: string; active: boolean }> = (
 
 const Workspace: React.FC<WorkspaceProps> = ({ 
   config, 
-  downloadUrl, 
+  downloadUrl,
+  downloadFilename,
   fileLoaded, 
   onReset,
   showInstructions,
@@ -64,7 +66,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a 
               href={downloadUrl} 
-              download={`NHL94_Enhanced_${config.mode === PatcherMode.MiniLogosOnly ? 'Mini' : 'Full'}.bin`}
+              download={downloadFilename}
               className="flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-900/40 transition-all active:scale-95"
             >
               <Icon name="download" className="w-5 h-5 mr-2" />
