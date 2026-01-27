@@ -112,6 +112,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
               <div className="relative z-10">
                 <div className="font-bold">Banners & Mini Logos</div>
                 <div className={`text-xs mt-1 ${config.mode === PatcherMode.FullBanners ? 'text-blue-200' : 'text-slate-500'}`}>Configure Banners and Mini Logos</div>
+                <div className={`text-xs mt-1 ${config.mode === PatcherMode.FullBanners ? 'text-blue-200' : 'text-slate-500'}`}>28 Team ROMs only</div>
               </div>
               {config.mode === PatcherMode.FullBanners && <div className="absolute top-0 right-0 p-2"><div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]"></div></div>}
             </button>
@@ -126,6 +127,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
               <div className="relative z-10">
                 <div className="font-bold">Mini Logos Only</div>
                 <div className={`text-xs mt-1 ${config.mode === PatcherMode.MiniLogosOnly ? 'text-blue-200' : 'text-slate-500'}`}>Gameplay Mini Logos</div>
+                <div className={`text-xs mt-1 ${config.mode === PatcherMode.MiniLogosOnly ? 'text-blue-200' : 'text-slate-500'}`}>28/30/32 Team ROMs</div>
               </div>
               {config.mode === PatcherMode.MiniLogosOnly && <div className="absolute top-0 right-0 p-2"><div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]"></div></div>}
             </button>
@@ -162,7 +164,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
             )}
             {config.mode === PatcherMode.MiniLogosOnly && (
               <Toggle 
-                label="32 Teams" 
+                label="30/32 Team ROM" 
                 checked={config.options.use32Teams} 
                 onChange={() => onConfigChange({
                   ...config,
