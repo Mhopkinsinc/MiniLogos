@@ -91,7 +91,9 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
       {/* File Operations */}
       <div className="p-5 border-b border-slate-800 bg-slate-900/50">
         <SectionHeader icon="file" title="1. ROM File" color="text-indigo-400" />
-        <FileUpload currentFile={currentFile} onFileSelect={onFileSelect} />
+        <div className={!currentFile ? 'animate-pulse' : ''}>
+          <FileUpload currentFile={currentFile} onFileSelect={onFileSelect} />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
