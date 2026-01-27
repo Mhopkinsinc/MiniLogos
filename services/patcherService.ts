@@ -1,5 +1,5 @@
 import { PatchConfig, PatcherMode } from '../types';
-import { loadClownAssembler } from './wasmLoader';
+import { loadClownAssembler, getCapturedOutput, clearCapturedOutput } from './wasmLoader';
 
 export interface PatchResult {
   blob: Blob;
@@ -39,6 +39,10 @@ const applyConfigToPatchAsm = (asmContent: string, config: PatchConfig): string 
     `$1${config.options.enableMiniLogos ? 1 : 0}`
   );
 
+  // Experimental: 32 Teams option (only applies when using MiniLogosOnly mode)
+  const use32Teams = config.mode === PatcherMode.MiniLogosOnly && config.options.use32Teams ? 1 : 0;
+  content = content.replace(/^(Use32Teams\s*=\s*)\d+/m, `$1${use32Teams}`);
+
   return content;
 };
 
@@ -48,6 +52,9 @@ const applyConfigToPatchAsm = (asmContent: string, config: PatchConfig): string 
  * is found, falls back to the existing simulated behavior.
  */
 export const patchRom = async (fileData: ArrayBuffer, config: PatchConfig, filename = 'input.bin'): Promise<PatchResult> => {
+  // Clear any previous output before starting
+  clearCapturedOutput();
+  
   console.log('Starting patch process...');
   console.log('Configuration:', config);
 
@@ -156,113 +163,107 @@ export const patchRom = async (fileData: ArrayBuffer, config: PatchConfig, filen
     const scriptToken = `patch.asm,${outputName}`;
     const args = ['/p', scriptToken];
 
-    // Hook module stdout/stderr to our console so assembler messages appear
-    // with a predictable prefix and ordering relative to our debug logs.
-    try {
-      if (typeof (wasmModule as any).print === 'function') {
-        (wasmModule as any).print = (...m: any[]) => console.log('[clownassembler]', ...m);
-      }
-      if (typeof (wasmModule as any).printErr === 'function') {
-        (wasmModule as any).printErr = (...m: any[]) => console.error('[clownassembler]', ...m);
-      }
-      // Also attempt to set the embedded Module.* hooks some builds expose
-      try {
-        (wasmModule as any).Module = (wasmModule as any).Module || {};
-        (wasmModule as any).Module.print = (...m: any[]) => console.log('[clownassembler]', ...m);
-        (wasmModule as any).Module.printErr = (...m: any[]) => console.error('[clownassembler]', ...m);
-      } catch {}
-    } catch (e) {
-      // best-effort; if we can't patch prints, continue
-    }
-
     // Debug visibility for the exact arguments passed into the module
     console.log('[clownassembler] callMain args:', JSON.stringify(args));
 
     // Call into the module via callMain if available
-    try {
-      if (typeof wasmModule.callMain === 'function') {
-        try {
-          // Some Emscripten builds read `Module.arguments`; set it for
-          // compatibility before invoking `callMain`.
-          try { wasmModule.arguments = args; } catch {}
-          // Also set the global debug reference if present to be safe
-          try { (window as any).__clownAssemblerModule = (window as any).__clownAssemblerModule || wasmModule; (window as any).__clownAssemblerModule.arguments = args; } catch {}
-          wasmModule.callMain(args);
-        } catch (e) {
-          // emscripten may throw an ExitStatus; ignore
-          console.debug('callMain finished with:', e);
-        }
-      } else if (typeof wasmModule.run === 'function') {
-        // some modules expose run; set Module.arguments then call run
-        wasmModule.arguments = args;
-        wasmModule.run();
-      } else {
-        console.warn('No callMain/run found on wasm module; cannot execute assembler');
-      }
-
-      // List root directory to see what files were created
+    let exitCode: number | null = null;
+    if (typeof wasmModule.callMain === 'function') {
       try {
-        const rootFiles = FS.readdir('/');
-        console.log('[clownassembler] Root directory after assembly:', rootFiles);
-      } catch (e) {
-        console.warn('Could not list root directory:', e);
-      }
-
-      // Read output file - try the expected output name first, then look for any .bin file
-      const outPath = `/${outputName}`;
-      console.log('[clownassembler] Looking for output at:', outPath);
-      
-      // Helper function to read and return the patched ROM blob
-      const readPatchedFile = (path: string): Blob | null => {
-        try {
-          const raw = FS.readFile(path, { encoding: 'binary' }) as any;
-          let outBytes: Uint8Array;
-          if (raw instanceof Uint8Array) {
-            outBytes = raw;
-          } else if (Array.isArray(raw)) {
-            outBytes = new Uint8Array(raw);
-          } else if (raw && raw.buffer) {
-            outBytes = new Uint8Array(raw.buffer);
-          } else {
-            return null;
-          }
-
-          if (outBytes && outBytes.length) {
-            console.log(`[clownassembler] Successfully read ${path} (${outBytes.length} bytes)`);
-            const ab = outBytes.slice().buffer;
-            return new Blob([ab], { type: 'application/octet-stream' });
-          }
-        } catch (e) {
-          console.warn(`Could not read ${path}:`, e);
+        try { wasmModule.arguments = args; } catch {}
+        const result = wasmModule.callMain(args);
+        if (typeof result === 'number') {
+          exitCode = result;
         }
-        return null;
-      };
-
-      // Try expected output path first
-      let patchedBlob = readPatchedFile(outPath);
-      
-      // If not found, search for any newly created .bin file in root (excluding nhl94.bin)
-      if (!patchedBlob) {
-        try {
-          const rootFiles = FS.readdir('/') as string[];
-          for (const file of rootFiles) {
-            if (file.endsWith('.bin') && file !== 'nhl94.bin' && file !== '.' && file !== '..') {
-              console.log(`[clownassembler] Trying alternate output file: /${file}`);
-              patchedBlob = readPatchedFile(`/${file}`);
-              if (patchedBlob) break;
-            }
-          }
-        } catch (e) {
-          console.warn('Could not search for output files:', e);
+      } catch (e: any) {
+        // emscripten may throw an ExitStatus with a status code
+        if (e && typeof e.status === 'number') {
+          exitCode = e.status;
         }
       }
-
-      if (patchedBlob) {
-        return { blob: patchedBlob, filename: outputName };
-      }
-    } catch (e) {
-      console.warn('Error invoking wasm assembler:', e);
+    } else if (typeof wasmModule.run === 'function') {
+      wasmModule.arguments = args;
+      wasmModule.run();
+    } else {
+      throw new Error('No callMain/run found on wasm module');
     }
+
+    // If exit code is non-zero, assembly failed - show all output
+    if (exitCode !== null && exitCode !== 0) {
+      const output = getCapturedOutput();
+      const outputText = output.filter(line => line.trim().length > 0).join('\n');
+      throw new Error(`Assembly failed:\n${outputText}`);
+    }
+
+    // List root directory to see what files were created
+    try {
+      const rootFiles = FS.readdir('/');
+      console.log('[clownassembler] Root directory after assembly:', rootFiles);
+    } catch (e) {
+      console.warn('Could not list root directory:', e);
+    }
+
+    // Read output file - try the expected output name first, then look for any .bin file
+    const outPath = `/${outputName}`;
+    console.log('[clownassembler] Looking for output at:', outPath);
+    
+    // Helper function to read and return the patched ROM blob
+    const readPatchedFile = (path: string): Blob | null => {
+      try {
+        const raw = FS.readFile(path, { encoding: 'binary' }) as any;
+        let outBytes: Uint8Array;
+        if (raw instanceof Uint8Array) {
+          outBytes = raw;
+        } else if (Array.isArray(raw)) {
+          outBytes = new Uint8Array(raw);
+        } else if (raw && raw.buffer) {
+          outBytes = new Uint8Array(raw.buffer);
+        } else {
+          return null;
+        }
+
+        if (outBytes && outBytes.length) {
+          console.log(`[clownassembler] Successfully read ${path} (${outBytes.length} bytes)`);
+          const ab = outBytes.slice().buffer;
+          return new Blob([ab], { type: 'application/octet-stream' });
+        }
+      } catch (e) {
+        console.warn(`Could not read ${path}:`, e);
+      }
+      return null;
+    };
+
+    // Try expected output path first
+    let patchedBlob = readPatchedFile(outPath);
+    
+    // If not found, search for any newly created .bin file in root (excluding nhl94.bin)
+    if (!patchedBlob) {
+      try {
+        const rootFiles = FS.readdir('/') as string[];
+        for (const file of rootFiles) {
+          if (file.endsWith('.bin') && file !== 'nhl94.bin' && file !== '.' && file !== '..') {
+            console.log(`[clownassembler] Trying alternate output file: /${file}`);
+            patchedBlob = readPatchedFile(`/${file}`);
+            if (patchedBlob) break;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not search for output files:', e);
+      }
+    }
+
+    if (patchedBlob) {
+      return { blob: patchedBlob, filename: outputName };
+    }
+    
+    // No output file was produced - show all output as error
+    const output = getCapturedOutput();
+    if (output.length > 0) {
+      const outputText = output.filter(line => line.trim().length > 0).join('\n');
+      throw new Error(`Assembly failed:\n${outputText}`);
+    }
+    
+    throw new Error('Assembly produced no output file. Check the console for details.');
   }
 
   // SIMULATION: fallback behavior (keeps original behavior for now)

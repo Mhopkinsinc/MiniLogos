@@ -29,7 +29,8 @@ const App: React.FC = () => {
       enableTeamSelectBanners: true,
       enableInGameBanners: true,
       enablePlayoffBanners: true,
-      enableMiniLogos: true
+      enableMiniLogos: true,
+      use32Teams: false
     }
   });
 
@@ -61,7 +62,9 @@ const App: React.FC = () => {
       setDownloadFilename(result.filename);
     } catch (err) {
       console.error(err);
-      setError("An error occurred while patching the ROM.");
+      // Show the actual error message if available
+      const errorMessage = err instanceof Error ? err.message : "An error occurred while patching the ROM.";
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -90,11 +93,25 @@ const App: React.FC = () => {
     } else if (activeTab === 'About') {
       return (
         <div className="max-w-2xl text-slate-400 text-sm leading-relaxed p-8">
-            <h2 className="text-xl font-bold text-white mb-4">About NHL '94 Patcher</h2>
-            <p className="mb-4">This tool allows you to inject original NHL '92 assets into the Genesis version of NHL '94. It runs entirely in your browser using WebAssembly, ensuring no files are uploaded to a server.</p>
+            <h2 className="text-xl font-bold text-white mb-4">About NHL '94 Team Banners + Mini Logos Patcher</h2>
+
             <div className="p-4 bg-slate-900 border border-slate-800 rounded">
-                <h3 className="text-white font-bold mb-2">Legal Disclaimer</h3>
-                <p>This is an unofficial utility. Please use with legally obtained ROM dumps only. EA Sports and NHL are trademarks of their respective owners.</p>
+                <h3 className="text-white font-bold mb-2">Disclaimer</h3>
+                <p>Please use with legally obtained ROM dumps only. EA Sports and NHL are trademarks of their respective owners.</p>
+            </div>
+
+            <div className="p-4 bg-slate-900 border border-slate-800 rounded mt-4">
+                <h3 className="text-white font-bold mb-2">Credits</h3>
+                <ul className="list-disc list-inside text-slate-300 space-y-1">
+                  <li>
+                    <a href="https://github.com/Clownacy/clownassembler" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">clownassembler</a>
+                    {" "}- m68k assembler compiled for WebAssembly. (Windows, macOS, Linux).
+                  </li>
+                  <li>
+                    <a href="https://github.com/aseprite/aseprite" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Aseprite</a>
+                    {" "}- Animated sprite editor & pixel art tool. (Windows, macOS, Linux).
+                  </li>
+                </ul>
             </div>
         </div>
       );
@@ -118,9 +135,12 @@ const App: React.FC = () => {
       }
     >
       {error && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-red-500 text-white px-4 py-2 rounded shadow-lg text-sm font-semibold flex items-center animate-fade-in-down">
-          <span className="mr-2">⚠️</span> {error}
-          <button onClick={() => setError(null)} className="ml-4 hover:text-red-200">✕</button>
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-red-900 border border-red-700 text-white px-4 py-3 rounded-lg shadow-lg text-sm max-w-2xl animate-fade-in-down">
+          <div className="flex items-start gap-2">
+            <span className="text-red-400 flex-shrink-0">⚠️</span>
+            <pre className="whitespace-pre-wrap font-mono text-xs overflow-auto max-h-48">{error}</pre>
+            <button onClick={() => setError(null)} className="ml-2 hover:text-red-300 flex-shrink-0">✕</button>
+          </div>
         </div>
       )}
       

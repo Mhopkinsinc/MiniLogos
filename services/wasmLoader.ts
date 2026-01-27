@@ -1,3 +1,20 @@
+// Store all captured output from the assembler
+let capturedOutput: string[] = [];
+
+/**
+ * Get all captured output from the last assembly run
+ */
+export function getCapturedOutput(): string[] {
+  return [...capturedOutput];
+}
+
+/**
+ * Clear captured output (call before starting a new assembly)
+ */
+export function clearCapturedOutput(): void {
+  capturedOutput = [];
+}
+
 export async function loadClownAssembler(): Promise<any> {
   // Build the runtime URL to the file in `public/wasm` so Vite doesn't
   // attempt to statically analyze it. Use a dynamic import with
@@ -8,6 +25,14 @@ export async function loadClownAssembler(): Promise<any> {
   // @ts-ignore - dynamic import with runtime URL
   const mod = await import(/* @vite-ignore */ url);
   const ModuleFactory = mod.default;
+  
+  // Capture all output from the assembler
+  const captureOutput = (s: any) => {
+    const msg = String(s);
+    capturedOutput.push(msg);
+    console.log('[clownassembler]', s);
+  };
+  
   const module = await ModuleFactory({
     // Prevent the module from auto-running main() on initialization
     noInitialRun: true,
@@ -19,22 +44,17 @@ export async function loadClownAssembler(): Promise<any> {
       }
       return `/wasm/${path}`;
     },
-    print: (s: any) => console.log('[clownassembler]', s),
-    printErr: (s: any) => {
-      // Filter out verbose argv debug messages - these are informational, not errors
-      const msg = String(s);
-      if (msg.includes('[argv]')) {
-        console.debug('[clownassembler]', s);
-      } else {
-        console.error('[clownassembler]', s);
-      }
-    },
+    print: captureOutput,
+    printErr: captureOutput,
   });
+  
+  // Ensure handlers stay bound after initialization
+  module.print = captureOutput;
+  module.printErr = captureOutput;
 
   // Expose module for debugging in development
   try {
     if (typeof window !== 'undefined') {
-      // Always expose for easier debugging; safe to remove in production builds
       (window as any).__clownAssemblerModule = module;
     }
   } catch {}

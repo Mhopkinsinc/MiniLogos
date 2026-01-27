@@ -12,9 +12,19 @@ interface SidebarControlsProps {
   isProcessing: boolean;
 }
 
-const Toggle: React.FC<{ label: string; checked: boolean; onChange: () => void; disabled?: boolean }> = ({ label, checked, onChange, disabled }) => (
+const Toggle: React.FC<{ label: string; checked: boolean; onChange: () => void; disabled?: boolean; tooltip?: string }> = ({ label, checked, onChange, disabled, tooltip }) => (
   <div className={`flex items-center justify-between py-2 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
-    <span className="text-sm text-slate-300 font-medium">{label}</span>
+    <span className="text-sm text-slate-300 font-medium flex items-center gap-1.5">
+      {label}
+      {tooltip && (
+        <span className="relative group">
+          <Icon name="info" className="w-3.5 h-3.5 text-slate-500 cursor-help" />
+          <span className="absolute left-0 bottom-full mb-2 px-2 py-1 text-xs text-slate-200 bg-slate-800 border border-slate-700 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+            {tooltip}
+          </span>
+        </span>
+      )}
+    </span>
     <button
       onClick={onChange}
       className={`w-9 h-5 rounded-full relative transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-offset-slate-900 focus:ring-blue-500 ${checked ? 'bg-blue-600' : 'bg-slate-700'}`}
@@ -49,14 +59,16 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
         enableTeamSelectBanners: false,
         enableInGameBanners: false,
         enablePlayoffBanners: false,
-        enableMiniLogos: true
+        enableMiniLogos: true,
+        use32Teams: false
       };
     } else {
       newOptions = {
         enableTeamSelectBanners: true,
         enableInGameBanners: true,
         enablePlayoffBanners: true,
-        enableMiniLogos: true
+        enableMiniLogos: true,
+        use32Teams: false
       };
     }
     onConfigChange({ mode, options: newOptions });
@@ -119,29 +131,44 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
         </div>
 
         {/* Feature Toggles */}
-        <div className={`p-5 transition-all duration-300 ${config.mode === PatcherMode.MiniLogosOnly ? 'opacity-40 pointer-events-none grayscale' : 'opacity-100'}`}>
+        <div className="p-5">
           <SectionHeader icon="layers" title="3. Features" color="text-amber-400" />
           <div className="space-y-1 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
-            <Toggle 
-              label="Team Select Banners" 
-              checked={config.options.enableTeamSelectBanners} 
-              onChange={() => handleOptionToggle('enableTeamSelectBanners')} 
-            />
-            <Toggle 
-              label="In-Game Banners" 
-              checked={config.options.enableInGameBanners} 
-              onChange={() => handleOptionToggle('enableInGameBanners')} 
-            />
-            <Toggle 
-              label="Playoff Brackets" 
-              checked={config.options.enablePlayoffBanners} 
-              onChange={() => handleOptionToggle('enablePlayoffBanners')} 
-            />
-            <Toggle 
-              label="Mini Logos" 
-              checked={config.options.enableMiniLogos} 
-              onChange={() => handleOptionToggle('enableMiniLogos')} 
-            />
+            {config.mode === PatcherMode.FullBanners && (
+              <>
+                <Toggle 
+                  label="Team Select Banners" 
+                  checked={config.options.enableTeamSelectBanners} 
+                  onChange={() => handleOptionToggle('enableTeamSelectBanners')} 
+                />
+                <Toggle 
+                  label="In-Game Banners" 
+                  checked={config.options.enableInGameBanners} 
+                  onChange={() => handleOptionToggle('enableInGameBanners')} 
+                />
+                <Toggle 
+                  label="Playoff Brackets" 
+                  checked={config.options.enablePlayoffBanners} 
+                  onChange={() => handleOptionToggle('enablePlayoffBanners')} 
+                />
+                <Toggle 
+                  label="Mini Logos" 
+                  checked={config.options.enableMiniLogos} 
+                  onChange={() => handleOptionToggle('enableMiniLogos')} 
+                />
+              </>
+            )}
+            {config.mode === PatcherMode.MiniLogosOnly && (
+              <Toggle 
+                label="32 Teams" 
+                checked={config.options.use32Teams} 
+                onChange={() => onConfigChange({
+                  ...config,
+                  options: { ...config.options, use32Teams: !config.options.use32Teams }
+                })}
+                tooltip="Enable support for 30/32 team ROMs."
+              />
+            )}
           </div>
         </div>
       </div>

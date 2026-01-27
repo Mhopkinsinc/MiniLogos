@@ -8,6 +8,7 @@ export interface PatchOptions {
   enableInGameBanners: boolean;
   enablePlayoffBanners: boolean;
   enableMiniLogos: boolean;
+  use32Teams: boolean;  // Experimental: Use 32 teams (only for MiniLogosOnly mode)
 }
 
 export interface PatchConfig {
