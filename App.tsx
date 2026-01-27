@@ -93,11 +93,22 @@ const App: React.FC = () => {
     } else if (activeTab === 'About') {
       return (
         <div className="max-w-2xl text-slate-400 text-sm leading-relaxed p-8">
-            <h2 className="text-xl font-bold text-white mb-4">About NHL '94 Team Banners + Mini Logos Patcher</h2>
+            <h2 className="text-xl font-bold text-white mb-4">About NHL '94 Team Banners + Mini Logos Patcher (GENESIS)</h2>            
 
-            <div className="p-4 bg-slate-900 border border-slate-800 rounded">
-                <h3 className="text-white font-bold mb-2">Disclaimer</h3>
-                <p>Please use with legally obtained ROM dumps only. EA Sports and NHL are trademarks of their respective owners.</p>
+           <div className="p-4 bg-slate-900 border border-slate-800 rounded mt-4">
+                <h3 className="text-white font-bold mb-2">Features</h3>
+                <ul className="list-disc list-inside text-slate-300 space-y-1">
+                  <li>
+                    Automatic Widescreen Mod Support.
+                  </li>
+                  <li>
+                    Default 28 team support for Banners + Mini Logos.                    
+                  </li>
+                  <li>Tested on Base rom and Fighting Rom.</li>
+                  <li>
+                    Mini Logo Support for 30/32 team ROMs (You will have to edit your own logos).
+                  </li>
+                </ul>
             </div>
 
             <div className="p-4 bg-slate-900 border border-slate-800 rounded mt-4">
@@ -113,6 +124,12 @@ const App: React.FC = () => {
                   </li>
                 </ul>
             </div>
+
+            <div className="p-4 bg-slate-900 border border-slate-800 rounded mt-4">
+                <h3 className="text-white font-bold mb-2">Disclaimer</h3>
+                <p>Please use with legally obtained ROM dumps only. EA Sports and NHL are trademarks of their respective owners.</p>
+            </div>
+
         </div>
       );
     }
