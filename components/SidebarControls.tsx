@@ -170,7 +170,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
                   ...config,
                   options: { ...config.options, use32Teams: !config.options.use32Teams }
                 })}
-                tooltip="Enable support for 30/32 team ROMs."
+                tooltip="Enable 30/32 Team ROMs."
               />
             )}
           </div>
