@@ -101,17 +101,17 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <PreviewCard 
-            title="Team Select Screen" 
+            title="Team Select Screen (BANNERS)" 
             src={TEAM_SELECT_BANNERS_PREVIEW} 
             active={config.options.enableTeamSelectBanners} 
           />
           <PreviewCard 
-            title="In-Game Scoreboard" 
+            title="In-Game Scoreboard (BANNERS)" 
             src={IN_GAME_BANNERS_PREVIEW} 
             active={config.options.enableInGameBanners} 
           />
           <PreviewCard 
-            title="Playoff Brackets" 
+            title="Playoff Bracket (BANNERS)" 
             src={PLAYOFF_BANNERS_PREVIEW} 
             active={config.options.enablePlayoffBanners} 
           />
