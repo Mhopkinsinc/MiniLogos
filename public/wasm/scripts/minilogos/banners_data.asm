@@ -18,21 +18,23 @@
 ; Format: JIM file (palette + tilemap + tile data)
 ;------------------------------------------------------------------------------
 TeamBannersMap:
-	incbin	scripts\minilogos\TeamBlocks.jim_28teams_banners_94_tilesize_clean_base.jim
-
+	if Use32Teams
+		incbin	scripts\minilogos\TeamBlocks.jim_32teams_banners_94_tilesize_clean_base.jim
+	else
+		incbin	scripts\minilogos\TeamBlocks.jim_28teams_banners_94_tilesize_clean_base.jim
+	endif
+	
 	endif	; UseBannerMode
 
 
 ;==============================================================================
-; STANDALONE MODE DATA
+; SHARED DATA
 ;==============================================================================
-
-	if UseStandaloneMode
 
 ;------------------------------------------------------------------------------
 ; MiniLogosMap
 ; Separate mini logo tiles only (2x2 tiles per team)
-; Used when: Original banners kept, only mini logos replaced
+; Used by universal logo routines (Banner Mode and Standalone Mode)
 ; Format: JIM file (palette + tilemap + tile data)
 ;------------------------------------------------------------------------------
 MiniLogosMap:
@@ -41,5 +43,3 @@ MiniLogosMap:
 	else
 		incbin	scripts\minilogos\TeamBlocks.jim_28teams_LogoOnly.jim
 	endif
-
-	endif	; UseStandaloneMode
