@@ -87,16 +87,16 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
   const isApplyDisabled = !currentFile || isProcessing || !hasFeaturesEnabled;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* File Operations */}
-      <div className="p-5 border-b border-slate-800 bg-slate-900/50">
+      <div className="p-5 border-b border-slate-800 bg-slate-900/50 shrink-0">
         <SectionHeader icon="file" title="1. ROM File" color="text-indigo-400" />
         <div className={!currentFile ? 'animate-pulse' : ''}>
           <FileUpload currentFile={currentFile} onFileSelect={onFileSelect} />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-32 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
         {/* Core Mode */}
         <div className="p-5 border-b border-slate-800">
           <SectionHeader icon="cpu" title="2. Patch Mode" color="text-sky-400" />
@@ -178,15 +178,15 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
       </div>
 
       {/* Action Footer */}
-      <div className="p-5 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.3)]">
+       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent z-20">
         <button
           onClick={onPatch}
           disabled={isApplyDisabled}
           className={`
-            w-full flex items-center justify-center py-3.5 rounded-lg font-bold text-sm transition-all shadow-xl uppercase tracking-wider
+             w-full flex items-center justify-center py-4 rounded-xl font-bold text-sm transition-all shadow-2xl uppercase tracking-wider
             ${isApplyDisabled
               ? 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700' 
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border border-blue-500/50 shadow-blue-900/20 active:scale-[0.98] ring-1 ring-white/10'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border border-blue-500/50 shadow-blue-900/40 hover:shadow-blue-900/60 active:scale-[0.98] ring-1 ring-white/10'
             }
           `}
         >

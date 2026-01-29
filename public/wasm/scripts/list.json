@@ -6,8 +6,5 @@
   "minilogos/banners_hijacks.asm",
   "minilogos/TeamBlocks.jim_28teams_banners_94_tilesize_clean_base.jim",
   "minilogos/TeamBlocks.jim_28teams_LogoOnly.jim",
-  "minilogos/TeamBlocks.jim_32teams_LogoOnly.jim",
-  "minilogos/GoodWorkingBackup/minilogos.asm",
-  "minilogos/GoodWorkingBackup/minilogoshijack.asm",
-  "minilogos/GoodWorkingBackup/patch.asm"
+  "minilogos/TeamBlocks.jim_32teams_LogoOnly.jim"  
 ]
