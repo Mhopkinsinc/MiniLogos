@@ -52,7 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, sideb
         </aside>
 
         {/* Right Content Area (Canvas) */}
-        <main className="flex-1 bg-slate-950 relative overflow-auto flex items-center justify-center p-8 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px]">
+        <main className="flex-1 bg-slate-950 relative overflow-auto flex items-center justify-center p-8">
           {children}
         </main>
       </div>

@@ -46,6 +46,8 @@ const App: React.FC = () => {
     setCurrentFile(file);
     setDownloadUrl(null);
     setError(null);
+    // If the user is currently on the About page, navigate to Preview
+    if (activeTab === 'About') setActiveTab('Preview');
   };
 
   const handlePatch = async () => {
