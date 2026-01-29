@@ -6,13 +6,14 @@ import DebugPanel from './components/DebugPanel';
 import { PatcherMode, PatchConfig, RomFile } from './types';
 import { patchRom, readFileAsArrayBuffer } from './services/patcherService';
 import { Icon } from './components/Icons';
+import InstructionsModal from './components/InstructionsModal';
 
 // Check if we're in development mode
 const isDev = import.meta.env.DEV;
 
 const App: React.FC = () => {
   // Navigation State
-  const [activeTab, setActiveTab] = useState('Preview');
+  const [activeTab, setActiveTab] = useState('About');
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // App State
@@ -86,8 +87,6 @@ const App: React.FC = () => {
           downloadFilename={downloadFilename}
           fileLoaded={!!currentFile} 
           onReset={handleReset}
-          showInstructions={showInstructions}
-          onCloseInstructions={() => setShowInstructions(false)}
         />
       );
     } else if (activeTab === 'About') {
@@ -99,12 +98,12 @@ const App: React.FC = () => {
                 <h3 className="text-white font-bold mb-2">Features</h3>
                 <ul className="list-disc list-inside text-slate-300 space-y-1">
                   <li>
-                    Automatic Widescreen Mod Support.
-                  </li>
-                  <li>
                     Default 28 team support for Banners + Mini Logos.                    
                   </li>
-                  <li>Tested on Base rom and Fighting Rom.</li>
+                  <li>
+                    Works with Widescreen Mode ROMS.
+                  </li>                  
+                  <li>Tested on 94 Base rom and Fighting Rom.</li>
                   <li>
                     Mini Logo Support for 30/32 team ROMs (You will have to edit your own logos).
                   </li>
@@ -162,6 +161,11 @@ const App: React.FC = () => {
       )}
       
       {renderContent()}
+
+      {/* Instructions Modal */}
+      {showInstructions && (
+        <InstructionsModal onClose={() => setShowInstructions(false)} />
+      )}
 
       {/* Debug Panel - Only shown in dev mode */}
       {isDev && (

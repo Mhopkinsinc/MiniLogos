@@ -5,7 +5,6 @@ import { IN_GAME_BANNERS_PREVIEW } from '../assets/inGamePreview';
 import { PLAYOFF_BANNERS_PREVIEW } from '../assets/playoffPreview';
 import { MINI_LOGOS_PREVIEW } from '../assets/miniLogosPreview';
 import { Icon } from './Icons';
-import InstructionsModal from './InstructionsModal';
 
 interface WorkspaceProps {
   config: PatchConfig;
@@ -13,8 +12,6 @@ interface WorkspaceProps {
   downloadFilename: string;
   fileLoaded: boolean;
   onReset: () => void;
-  showInstructions: boolean;
-  onCloseInstructions: () => void;
 }
 
 const PreviewCard: React.FC<{ title: string; src: string; active: boolean }> = ({ title, src, active }) => (
@@ -45,9 +42,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
   downloadUrl,
   downloadFilename,
   fileLoaded, 
-  onReset,
-  showInstructions,
-  onCloseInstructions
+  onReset
 }) => {
 
   if (downloadUrl) {
@@ -127,9 +122,6 @@ const Workspace: React.FC<WorkspaceProps> = ({
           />
         </div>
       </div>
-
-      {/* Instructions Modal */}
-      {showInstructions && <InstructionsModal onClose={onCloseInstructions} />}
     </div>
   );
 };
