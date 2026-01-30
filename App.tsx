@@ -3,10 +3,14 @@ import Layout from './components/Layout';
 import SidebarControls from './components/SidebarControls';
 import Workspace from './components/Workspace';
 import DebugPanel from './components/DebugPanel';
+import JimEditor from './components/JimEditor';
+import JimEditorSidebar from './components/JimEditorSidebar';
 import { PatcherMode, PatchConfig, RomFile } from './types';
 import { patchRom, readFileAsArrayBuffer } from './services/patcherService';
+import { JimData } from './services';
 import { Icon } from './components/Icons';
 import InstructionsModal from './components/InstructionsModal';
+import type { ViewMode } from './components/JimEditor';
 
 // Check if we're in development mode
 const isDev = import.meta.env.DEV;
@@ -23,6 +27,13 @@ const App: React.FC = () => {
   const [downloadFilename, setDownloadFilename] = useState<string>('patched.bin');
   const [error, setError] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(true);
+
+  // JimEdit State (persists across tab switches until new file loaded)
+  const [jimData, setJimData] = useState<JimData | null>(null);
+  const [jimFilename, setJimFilename] = useState<string>('');
+  const [jimViewMode, setJimViewMode] = useState<ViewMode>('map');
+  const [jimSelectedPalette, setJimSelectedPalette] = useState<number>(-1); // -1 = native
+  const [jimTransparentBg, setJimTransparentBg] = useState<boolean>(true);
   
   const [config, setConfig] = useState<PatchConfig>({
     mode: PatcherMode.FullBanners,
@@ -79,6 +90,12 @@ const App: React.FC = () => {
     setError(null);
   };
 
+  // JimEdit handlers
+  const handleJimLoad = (data: JimData, filename: string) => {
+    setJimData(data);
+    setJimFilename(filename);
+  };
+
   // Render content based on active tab
   const renderContent = () => {
     if (activeTab === 'Preview') {
@@ -89,6 +106,17 @@ const App: React.FC = () => {
           downloadFilename={downloadFilename}
           fileLoaded={!!currentFile} 
           onReset={handleReset}
+        />
+      );
+    } else if (activeTab === 'JimEdit') {
+      return (
+        <JimEditor
+          jimData={jimData}
+          jimFilename={jimFilename}
+          viewMode={jimViewMode}
+          onViewModeChange={setJimViewMode}
+          selectedPalette={jimSelectedPalette}
+          transparentBg={jimTransparentBg}
         />
       );
     } else if (activeTab === 'About') {
@@ -137,20 +165,43 @@ const App: React.FC = () => {
     return null;
   };
 
+  // Determine which sidebar to show based on active tab
+  const renderSidebar = () => {
+    if (activeTab === 'JimEdit') {
+      return (
+        <JimEditorSidebar
+          jimData={jimData}
+          jimFilename={jimFilename}
+          onJimLoad={handleJimLoad}
+          viewMode={jimViewMode}
+          selectedPalette={jimSelectedPalette}
+          onPaletteChange={setJimSelectedPalette}
+          transparentBg={jimTransparentBg}
+          onTransparentBgChange={setJimTransparentBg}
+          isProcessing={isProcessing}
+          setIsProcessing={setIsProcessing}
+          setError={setError}
+        />
+      );
+    }
+    return (
+      <SidebarControls 
+        config={config}
+        onConfigChange={setConfig}
+        currentFile={currentFile}
+        onFileSelect={handleFileSelect}
+        onPatch={handlePatch}
+        isProcessing={isProcessing}
+      />
+    );
+  };
+
   return (
     <Layout 
       activeTab={activeTab} 
       onTabChange={setActiveTab}
-      sidebar={
-        <SidebarControls 
-          config={config}
-          onConfigChange={setConfig}
-          currentFile={currentFile}
-          onFileSelect={handleFileSelect}
-          onPatch={handlePatch}
-          isProcessing={isProcessing}
-        />
-      }
+      tabs={['Preview', 'JimEdit', 'About']}
+      sidebar={renderSidebar()}
     >
       {error && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-red-900 border border-red-700 text-white px-4 py-3 rounded-lg shadow-lg text-sm max-w-2xl animate-fade-in-down">

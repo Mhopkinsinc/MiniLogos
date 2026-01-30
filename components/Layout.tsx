@@ -6,9 +6,10 @@ interface LayoutProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   sidebar: React.ReactNode;
+  tabs?: string[];
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, sidebar }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, sidebar, tabs = ['Preview', 'About'] }) => {
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans">
       {/* Header */}
@@ -22,7 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, sideb
         {/* Tab Navigation */}
         <div className="flex-1 flex justify-center">
           <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
-            {['Preview', 'About'].map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => onTabChange(tab)}
