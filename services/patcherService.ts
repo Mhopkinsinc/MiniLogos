@@ -1,10 +1,15 @@
-import { PatchConfig, PatcherMode } from '../types';
+import { PatchConfig, PatcherMode, PresetOverride } from '../types';
 import { loadClownAssembler, getCapturedOutput, clearCapturedOutput } from './wasmLoader';
 
 export interface PatchResult {
   blob: Blob;
   filename: string;
 }
+
+/**
+ * Map of preset overrides keyed by their relative path (e.g., "minilogos/minilogos_32_teams.jim")
+ */
+export type PresetOverrides = Map<string, PresetOverride>;
 
 /**
  * Applies the UI configuration to the patch.asm content by replacing
@@ -50,8 +55,18 @@ const applyConfigToPatchAsm = (asmContent: string, config: PatchConfig): string 
  * Patches the provided ROM file buffer with the selected configuration.
  * Attempts to load and call into the WASM module; if no compatible export
  * is found, falls back to the existing simulated behavior.
+ * 
+ * @param fileData - The ROM file buffer
+ * @param config - Patch configuration options
+ * @param filename - Original filename (used for output naming)
+ * @param presetOverrides - Optional map of preset files to override with custom JIM data
  */
-export const patchRom = async (fileData: ArrayBuffer, config: PatchConfig, filename = 'input.bin'): Promise<PatchResult> => {
+export const patchRom = async (
+  fileData: ArrayBuffer, 
+  config: PatchConfig, 
+  filename = 'input.bin',
+  presetOverrides?: PresetOverrides
+): Promise<PatchResult> => {
   // Clear any previous output before starting
   clearCapturedOutput();
   
@@ -151,6 +166,25 @@ export const patchRom = async (fileData: ArrayBuffer, config: PatchConfig, filen
     // Fetch discovered files
     for (const f of scriptFiles) {
       await fetchAndWrite(f);
+    }
+
+    // Apply any preset overrides (custom .jim files uploaded by the user)
+    if (presetOverrides && presetOverrides.size > 0) {
+      for (const [presetPath, override] of presetOverrides) {
+        const targetPath = `/scripts/${presetPath}`;
+        try {
+          // Ensure the directory exists
+          const parts = presetPath.split('/');
+          if (parts.length > 1) {
+            const dir = '/scripts/' + parts.slice(0, -1).join('/');
+            try { FS.mkdirTree(dir); } catch {}
+          }
+          FS.writeFile(targetPath, override.jimData);
+          console.log(`[patcher] Applied custom override for ${presetPath} (${override.jimData.length} bytes, source: ${override.sourceName || 'unknown'})`);
+        } catch (e) {
+          console.warn(`[patcher] Failed to apply override for ${presetPath}:`, e);
+        }
+      }
     }
 
     // Ensure current working directory is root

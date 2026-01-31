@@ -12,6 +12,7 @@ import {
   renderPalettesToCanvas,
 } from '../services';
 import type { ViewMode } from './JimEditor';
+import type { PresetOverrides } from '../services/patcherService';
 
 interface JimEditorSidebarProps {
   jimData: JimData | null;
@@ -23,6 +24,9 @@ interface JimEditorSidebarProps {
   isProcessing: boolean;
   setIsProcessing: (value: boolean) => void;
   setError: (error: string | null) => void;
+  presetOverrides: PresetOverrides;
+  onPresetOverride: (presetPath: string, jimData: Uint8Array, sourceName: string) => void;
+  onClearPresetOverride: (presetPath: string) => void;
 }
 
 // Reusable UI Components (matching SidebarControls style)
@@ -67,13 +71,20 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   onPaletteChange,
   isProcessing,
   setIsProcessing,
-  setError
+  setError,
+  presetOverrides,
+  onPresetOverride,
+  onClearPresetOverride
 }) => {
   const jimInputRef = useRef<HTMLInputElement>(null);
   const aseInputRef = useRef<HTMLInputElement>(null);
   const [presetJimFiles, setPresetJimFiles] = useState<{ label: string; path: string }[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [currentFileSource, setCurrentFileSource] = useState<'preset' | 'aseprite' | 'jim' | null>(null);
+  
+  // State for the preset selection modal
+  const [showPresetModal, setShowPresetModal] = useState(false);
+  const [pendingAsepriteData, setPendingAsepriteData] = useState<{ data: JimData; filename: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -152,8 +163,10 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       const buffer = await file.arrayBuffer();
       const aseData = await parseAseprite(buffer);
       const data = convertAsepriteToJim(aseData, false); // false = enable deduplication
-      onJimLoad(data, file.name.replace(/\.(ase|aseprite)$/i, '.jim'));
-      setCurrentFileSource('aseprite');
+      
+      // Store the pending data and show the preset selection modal
+      setPendingAsepriteData({ data, filename: file.name.replace(/\.(ase|aseprite)$/i, '.jim') });
+      setShowPresetModal(true);
     } catch (err) {
       console.error('Failed to parse Aseprite file:', err);
       setError(err instanceof Error ? err.message : 'Failed to parse Aseprite file');
@@ -161,6 +174,44 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       setIsProcessing(false);
       if (aseInputRef.current) aseInputRef.current.value = '';
     }
+  };
+
+  // Handle preset selection from modal
+  const handlePresetSelection = (presetFile: { label: string; path: string } | null) => {
+    if (!pendingAsepriteData) {
+      setShowPresetModal(false);
+      return;
+    }
+
+    const { data, filename } = pendingAsepriteData;
+
+    // Load the data into the editor
+    onJimLoad(data, filename);
+    setCurrentFileSource('aseprite');
+
+    // If a preset was selected, create the override
+    if (presetFile) {
+      try {
+        // Convert JimData to binary format
+        const jimBytes = createJimFile(data);
+        // Extract the relative path (e.g., "minilogos/minilogos_32_teams.jim")
+        const relativePath = presetFile.path.replace(/^wasm\/scripts\//, '');
+        onPresetOverride(relativePath, jimBytes, filename);
+      } catch (err) {
+        console.error('Failed to create JIM override:', err);
+        setError(err instanceof Error ? err.message : 'Failed to create preset override');
+      }
+    }
+
+    // Clean up
+    setPendingAsepriteData(null);
+    setShowPresetModal(false);
+  };
+
+  // Cancel preset selection
+  const handleCancelPresetSelection = () => {
+    setPendingAsepriteData(null);
+    setShowPresetModal(false);
   };
 
   const handlePresetJimLoad = async (file: { label: string; path: string }) => {
@@ -275,20 +326,91 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       <input type="file" ref={jimInputRef} onChange={handleJimFileLoad} className="hidden" accept=".jim" />
       <input type="file" ref={aseInputRef} onChange={handleAsepriteFileLoad} className="hidden" accept=".ase,.aseprite" />
 
+      {/* Preset Selection Modal */}
+      {showPresetModal && pendingAsepriteData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="p-5 border-b border-slate-800">
+              <h3 className="text-lg font-bold text-white">Select Target Preset</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Choose which preset file to replace with your imported Aseprite file, or skip to just view in the editor.
+              </p>
+            </div>
+            <div className="p-5 space-y-2 max-h-64 overflow-y-auto">
+              {presetJimFiles.map((file) => {
+                const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+                const hasOverride = presetOverrides.has(relativePath);
+                return (
+                  <button
+                    key={file.path}
+                    onClick={() => handlePresetSelection(file)}
+                    className={`
+                      w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all
+                      bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700
+                      active:scale-[0.98]
+                    `}
+                  >
+                    <Icon name="file" className="w-4 h-4 text-emerald-400" />
+                    <span className="flex-1 text-left">{file.label}</span>
+                    {hasOverride && (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        Modified
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="p-5 border-t border-slate-800 flex gap-3">
+              <button
+                onClick={() => handlePresetSelection(null)}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
+              >
+                Skip (View Only)
+              </button>
+              <button
+                onClick={handleCancelPresetSelection}
+                className="px-4 py-2.5 rounded-lg text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Preset Files Section */}
       <div className="p-5 border-b border-slate-800 bg-slate-900/70 shrink-0">
-        <SectionHeader icon="layers" title="Preset Files" color="text-emerald-400" />
+        <SectionHeader icon="layers" title="Select File to Export" color="text-emerald-400" />
         <div className="space-y-2">
-          {presetJimFiles.map((file) => (
-            <ActionButton
-              key={file.path}
-              icon="file"
-              label={file.label}
-              onClick={() => handlePresetJimLoad(file)}
-              disabled={isProcessing}
-              variant={jimFilename === file.label ? 'primary' : 'secondary'}
-            />
-          ))}
+          {presetJimFiles.map((file) => {
+            const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+            const override = presetOverrides.get(relativePath);
+            return (
+              <div key={file.path} className="relative">
+                <ActionButton
+                  icon="file"
+                  label={file.label}
+                  onClick={() => handlePresetJimLoad(file)}
+                  disabled={isProcessing}
+                  variant={jimFilename === file.label ? 'primary' : 'secondary'}
+                />
+                {override && (
+                  <div className="mt-1 flex items-center justify-between px-2">
+                    <span className="text-[10px] text-amber-400 truncate" title={override.sourceName}>
+                      ⚡ Override: {override.sourceName}
+                    </span>
+                    <button
+                      onClick={() => onClearPresetOverride(relativePath)}
+                      className="text-[10px] text-red-400 hover:text-red-300 underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {isLoadingPresets && (
             <p className="text-xs text-slate-500">Loading presets...</p>
           )}

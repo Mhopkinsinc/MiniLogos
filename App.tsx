@@ -5,8 +5,8 @@ import Workspace from './components/Workspace';
 import DebugPanel from './components/DebugPanel';
 import JimEditor from './components/JimEditor';
 import JimEditorSidebar from './components/JimEditorSidebar';
-import { PatcherMode, PatchConfig, RomFile } from './types';
-import { patchRom, readFileAsArrayBuffer } from './services/patcherService';
+import { PatcherMode, PatchConfig, RomFile, PresetOverride } from './types';
+import { patchRom, readFileAsArrayBuffer, PresetOverrides } from './services/patcherService';
 import { JimData } from './services';
 import { Icon } from './components/Icons';
 import InstructionsModal from './components/InstructionsModal';
@@ -35,6 +35,9 @@ const App: React.FC = () => {
   const [jimFilename, setJimFilename] = useState<string>('');
   const [jimViewMode, setJimViewMode] = useState<ViewMode>('map');
   const [jimSelectedPalette, setJimSelectedPalette] = useState<number>(1);
+  
+  // Preset overrides - custom .jim files to use instead of defaults during patching
+  const [presetOverrides, setPresetOverrides] = useState<PresetOverrides>(new Map());
   
   const [config, setConfig] = useState<PatchConfig>({
     mode: PatcherMode.FullBanners,
@@ -78,7 +81,7 @@ const App: React.FC = () => {
 
     try {
       const buffer = await readFileAsArrayBuffer(currentFile.data);
-      const result = await patchRom(buffer, config, currentFile.name);
+      const result = await patchRom(buffer, config, currentFile.name, presetOverrides);
       const url = URL.createObjectURL(result.blob);
       setDownloadUrl(url);
       setDownloadFilename(result.filename);
@@ -103,6 +106,24 @@ const App: React.FC = () => {
     setJimData(data);
     setJimFilename(filename);
     setJimSelectedPalette(1);
+  };
+
+  // Handler for setting a preset override
+  const handlePresetOverride = (presetPath: string, jimData: Uint8Array, sourceName: string) => {
+    setPresetOverrides(prev => {
+      const newMap = new Map(prev);
+      newMap.set(presetPath, { presetPath, jimData, sourceName });
+      return newMap;
+    });
+  };
+
+  // Handler for clearing a preset override
+  const handleClearPresetOverride = (presetPath: string) => {
+    setPresetOverrides(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(presetPath);
+      return newMap;
+    });
   };
 
   // Render content based on active tab
@@ -187,6 +208,9 @@ const App: React.FC = () => {
           isProcessing={isProcessing}
           setIsProcessing={setIsProcessing}
           setError={setError}
+          presetOverrides={presetOverrides}
+          onPresetOverride={handlePresetOverride}
+          onClearPresetOverride={handleClearPresetOverride}
         />
       );
     }

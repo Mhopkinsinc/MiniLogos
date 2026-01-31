@@ -21,3 +21,16 @@ export interface RomFile {
   size: number;
   data: File;
 }
+
+/**
+ * Represents a preset .jim file that has been overridden with custom data.
+ * The key is the relative path within the wasm scripts folder (e.g., "minilogos/minilogos_32_teams.jim")
+ */
+export interface PresetOverride {
+  /** The relative path of the preset file (e.g., "minilogos/minilogos_32_teams.jim") */
+  presetPath: string;
+  /** The binary .jim data to use instead of the default preset */
+  jimData: Uint8Array;
+  /** Optional: the original filename that was imported (for display purposes) */
+  sourceName?: string;
+}
