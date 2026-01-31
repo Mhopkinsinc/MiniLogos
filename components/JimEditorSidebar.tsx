@@ -75,6 +75,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   onClearPresetOverride
 }) => {
   const aseInputRef = useRef<HTMLInputElement>(null);
+  const hasAutoLoadedRef = useRef(false);
   const [presetJimFiles, setPresetJimFiles] = useState<{ label: string; displayName: string; path: string }[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [currentFileSource, setCurrentFileSource] = useState<'preset' | 'aseprite' | 'jim' | null>(null);
@@ -138,6 +139,19 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       active = false;
     };
   }, []);
+
+  // Auto-load "Banners (28 Teams)" when presets are loaded and no file is selected
+  useEffect(() => {
+    if (!isLoadingPresets && presetJimFiles.length > 0 && !jimData && !hasAutoLoadedRef.current) {
+      hasAutoLoadedRef.current = true;
+      // Find "Banners (28 Teams)" or fall back to the first preset
+      const bannersPreset = presetJimFiles.find(f => f.path.includes('banners_28_teams.jim'));
+      const presetToLoad = bannersPreset || presetJimFiles[0];
+      if (presetToLoad) {
+        handlePresetJimLoad(presetToLoad);
+      }
+    }
+  }, [isLoadingPresets, presetJimFiles, jimData]);
 
   // --- File Load Handlers ---
   const handleAsepriteFileLoad = async (e: React.ChangeEvent<HTMLInputElement>) => {
