@@ -10,7 +10,6 @@ interface JimEditorProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   selectedPalette: number;
-  transparentBg: boolean;
 }
 
 const JimEditor: React.FC<JimEditorProps> = ({ 
@@ -18,13 +17,13 @@ const JimEditor: React.FC<JimEditorProps> = ({
   jimFilename,
   viewMode,
   onViewModeChange,
-  selectedPalette,
-  transparentBg
+  selectedPalette
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(2);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const transparentBg = true; // Always use transparent background
 
   // Render main canvas (map, tileset, or palettes)
   useEffect(() => {

@@ -33,7 +33,6 @@ const App: React.FC = () => {
   const [jimFilename, setJimFilename] = useState<string>('');
   const [jimViewMode, setJimViewMode] = useState<ViewMode>('map');
   const [jimSelectedPalette, setJimSelectedPalette] = useState<number>(-1); // -1 = native
-  const [jimTransparentBg, setJimTransparentBg] = useState<boolean>(true);
   
   const [config, setConfig] = useState<PatchConfig>({
     mode: PatcherMode.FullBanners,
@@ -116,7 +115,6 @@ const App: React.FC = () => {
           viewMode={jimViewMode}
           onViewModeChange={setJimViewMode}
           selectedPalette={jimSelectedPalette}
-          transparentBg={jimTransparentBg}
         />
       );
     } else if (activeTab === 'About') {
@@ -176,8 +174,6 @@ const App: React.FC = () => {
           viewMode={jimViewMode}
           selectedPalette={jimSelectedPalette}
           onPaletteChange={setJimSelectedPalette}
-          transparentBg={jimTransparentBg}
-          onTransparentBgChange={setJimTransparentBg}
           isProcessing={isProcessing}
           setIsProcessing={setIsProcessing}
           setError={setError}
@@ -220,8 +216,8 @@ const App: React.FC = () => {
         <InstructionsModal onClose={() => setShowInstructions(false)} />
       )}
 
-      {/* Debug Panel - Only shown in dev mode */}
-      {isDev && (
+      {/* Debug Panel - Only shown in dev mode on Preview tab */}
+      {isDev && activeTab === 'Preview' && (
         <>
           <button
             onClick={() => setShowDebugPanel(true)}

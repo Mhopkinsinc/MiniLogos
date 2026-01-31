@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Icon } from './Icons';
-import { JimData, parseJimFile, createJimFile, createAsepriteBlob, generateMetadata, updateJimFromImage } from '../services';
+import { JimData, parseJimFile, createJimFile, createAsepriteBlob } from '../services';
 import { parseAseprite, convertAsepriteToJim } from '../services';
 import type { ViewMode } from './JimEditor';
 
@@ -11,26 +11,12 @@ interface JimEditorSidebarProps {
   viewMode: ViewMode;
   selectedPalette: number;
   onPaletteChange: (palette: number) => void;
-  transparentBg: boolean;
-  onTransparentBgChange: (value: boolean) => void;
   isProcessing: boolean;
   setIsProcessing: (value: boolean) => void;
   setError: (error: string | null) => void;
 }
 
 // Reusable UI Components (matching SidebarControls style)
-const Toggle: React.FC<{ label: string; checked: boolean; onChange: () => void; disabled?: boolean }> = ({ label, checked, onChange, disabled }) => (
-  <div className={`flex items-center justify-between py-2 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
-    <span className="text-sm text-slate-300 font-medium">{label}</span>
-    <button
-      onClick={onChange}
-      className={`w-9 h-5 rounded-full relative transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-offset-slate-900 focus:ring-blue-500 ${checked ? 'bg-blue-600' : 'bg-slate-700'}`}
-    >
-      <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform duration-200 ${checked ? 'left-5' : 'left-1'}`} />
-    </button>
-  </div>
-);
-
 const SectionHeader: React.FC<{ icon: string; title: string; color?: string }> = ({ icon, title, color = "text-blue-100" }) => (
   <div className="flex items-center gap-3 mb-4">
     <div className="p-2 rounded-lg bg-slate-800 border border-slate-700 shadow-sm">
@@ -70,15 +56,12 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   viewMode,
   selectedPalette,
   onPaletteChange,
-  transparentBg,
-  onTransparentBgChange,
   isProcessing,
   setIsProcessing,
   setError
 }) => {
   const jimInputRef = useRef<HTMLInputElement>(null);
   const aseInputRef = useRef<HTMLInputElement>(null);
-  const pngInputRef = useRef<HTMLInputElement>(null);
 
   // --- File Load Handlers ---
   const handleJimFileLoad = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,49 +103,11 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     }
   };
 
-  const handlePngImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !jimData) return;
-
-    setIsProcessing(true);
-    setError(null);
-    try {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.src = url;
-      });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Failed to get canvas context');
-      
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      
-      URL.revokeObjectURL(url);
-      
-      const updatedJim = updateJimFromImage(jimData, imageData);
-      onJimLoad(updatedJim, jimFilename);
-    } catch (err) {
-      console.error('Failed to import PNG:', err);
-      setError(err instanceof Error ? err.message : 'Failed to import PNG');
-    } finally {
-      setIsProcessing(false);
-      if (pngInputRef.current) pngInputRef.current.value = '';
-    }
-  };
-
   // --- Export Handlers ---
   const handleExportJim = () => {
     if (!jimData) return;
     const bytes = createJimFile(jimData);
-    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const blob = new Blob([new Uint8Array(bytes)], { type: 'application/octet-stream' });
     downloadBlob(blob, jimFilename || 'export.jim');
   };
 
@@ -171,7 +116,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     setIsProcessing(true);
     try {
       const palIdx = selectedPalette === -1 ? -1 : selectedPalette;
-      const blob = await createAsepriteBlob(jimData, mode, palIdx, transparentBg);
+      const blob = await createAsepriteBlob(jimData, mode, palIdx, true);
       const suffix = mode === 'map' ? '_map' : '_tileset';
       const filename = jimFilename.replace(/\.jim$/i, '') + suffix + '.aseprite';
       downloadBlob(blob, filename);
@@ -191,10 +136,10 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     
     if (viewMode === 'map') {
       const forcePal = selectedPalette === -1 ? undefined : selectedPalette;
-      renderMapToCanvas(jimData, canvas, forcePal, transparentBg);
+      renderMapToCanvas(jimData, canvas, forcePal, true);
     } else {
       const palIdx = selectedPalette === -1 ? 0 : selectedPalette;
-      renderTilesetToCanvas(jimData, canvas, palIdx, 1, transparentBg);
+      renderTilesetToCanvas(jimData, canvas, palIdx, 1, true);
     }
 
     canvas.toBlob((blob) => {
@@ -204,15 +149,6 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         downloadBlob(blob, filename);
       }
     }, 'image/png');
-  };
-
-  const handleExportJson = () => {
-    if (!jimData) return;
-    const metadata = generateMetadata(jimData);
-    const json = JSON.stringify(metadata, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const filename = jimFilename.replace(/\.jim$/i, '') + '_metadata.json';
-    downloadBlob(blob, filename);
   };
 
   const downloadBlob = (blob: Blob, filename: string) => {
@@ -231,7 +167,6 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       {/* Hidden File Inputs */}
       <input type="file" ref={jimInputRef} onChange={handleJimFileLoad} className="hidden" accept=".jim" />
       <input type="file" ref={aseInputRef} onChange={handleAsepriteFileLoad} className="hidden" accept=".ase,.aseprite" />
-      <input type="file" ref={pngInputRef} onChange={handlePngImport} className="hidden" accept=".png" />
 
       {/* Load File Section */}
       <div className="p-5 border-b border-slate-800 bg-slate-900/50 shrink-0">
@@ -291,16 +226,6 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
           </div>
         </div>
 
-        {/* Display Options */}
-        <div className="p-5 border-b border-slate-800">
-          <SectionHeader icon="settings" title="Display" color="text-emerald-400" />
-          <Toggle 
-            label="Transparent Background" 
-            checked={transparentBg} 
-            onChange={() => onTransparentBgChange(!transparentBg)} 
-          />
-        </div>
-
         {/* Export Actions */}
         <div className="p-5 border-b border-slate-800">
           <SectionHeader icon="download" title="Export" color="text-rose-400" />
@@ -319,38 +244,12 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
               disabled={!jimData || isProcessing}
             />
             <ActionButton 
-              icon="layers" 
-              label="Export Aseprite (Tileset)" 
-              onClick={() => handleExportAseprite('tileset')}
-              disabled={!jimData || isProcessing}
-            />
-            <ActionButton 
               icon="image" 
               label="Export PNG" 
               onClick={handleExportPng}
               disabled={!jimData || isProcessing}
             />
-            <ActionButton 
-              icon="file" 
-              label="Export JSON Metadata" 
-              onClick={handleExportJson}
-              disabled={!jimData || isProcessing}
-            />
           </div>
-        </div>
-
-        {/* Import (Round-trip) */}
-        <div className="p-5">
-          <SectionHeader icon="upload" title="Import (Round-trip)" color="text-violet-400" />
-          <p className="text-xs text-slate-500 mb-3">
-            Import a PNG to regenerate tiles while preserving palettes.
-          </p>
-          <ActionButton 
-            icon="image" 
-            label="Import PNG" 
-            onClick={() => pngInputRef.current?.click()}
-            disabled={!jimData || isProcessing}
-          />
         </div>
       </div>
     </div>
