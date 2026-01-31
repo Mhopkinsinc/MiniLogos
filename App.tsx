@@ -17,7 +17,7 @@ const isDev = import.meta.env.DEV;
 
 const App: React.FC = () => {
   // Navigation State
-  const [activeTab, setActiveTab] = useState('About');
+  const [activeTab, setActiveTab] = useState('ROM Patcher');
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // App State
@@ -28,7 +28,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(true);
 
-  // JimEdit State (persists across tab switches until new file loaded)
+  // Tile Editor state (persists across tab switches until new file loaded)
   const [jimData, setJimData] = useState<JimData | null>(null);
   const [jimFilename, setJimFilename] = useState<string>('');
   const [jimViewMode, setJimViewMode] = useState<ViewMode>('map');
@@ -56,8 +56,8 @@ const App: React.FC = () => {
     setCurrentFile(file);
     setDownloadUrl(null);
     setError(null);
-    // If the user is currently on the About page, navigate to Preview
-    if (activeTab === 'About') setActiveTab('Preview');
+    // If the user is currently on the About page, navigate to ROM Patcher
+    if (activeTab === 'About') setActiveTab('ROM Patcher');
   };
 
   const handlePatch = async () => {
@@ -89,7 +89,7 @@ const App: React.FC = () => {
     setError(null);
   };
 
-  // JimEdit handlers
+  // Tile Editor handlers
   const handleJimLoad = (data: JimData, filename: string) => {
     setJimData(data);
     setJimFilename(filename);
@@ -97,7 +97,7 @@ const App: React.FC = () => {
 
   // Render content based on active tab
   const renderContent = () => {
-    if (activeTab === 'Preview') {
+    if (activeTab === 'ROM Patcher') {
       return (
         <Workspace 
           config={config} 
@@ -107,7 +107,7 @@ const App: React.FC = () => {
           onReset={handleReset}
         />
       );
-    } else if (activeTab === 'JimEdit') {
+    } else if (activeTab === 'Tile Editor') {
       return (
         <JimEditor
           jimData={jimData}
@@ -165,7 +165,7 @@ const App: React.FC = () => {
 
   // Determine which sidebar to show based on active tab
   const renderSidebar = () => {
-    if (activeTab === 'JimEdit') {
+    if (activeTab === 'Tile Editor') {
       return (
         <JimEditorSidebar
           jimData={jimData}
@@ -196,7 +196,7 @@ const App: React.FC = () => {
     <Layout 
       activeTab={activeTab} 
       onTabChange={setActiveTab}
-      tabs={['Preview', 'JimEdit', 'About']}
+      tabs={['ROM Patcher', 'Tile Editor', 'About']}
       sidebar={renderSidebar()}
     >
       {error && (
@@ -216,8 +216,8 @@ const App: React.FC = () => {
         <InstructionsModal onClose={() => setShowInstructions(false)} />
       )}
 
-      {/* Debug Panel - Only shown in dev mode on Preview tab */}
-      {isDev && activeTab === 'Preview' && (
+      {/* Debug Panel - Only shown in dev mode on ROM Patcher tab */}
+      {isDev && activeTab === 'ROM Patcher' && (
         <>
           <button
             onClick={() => setShowDebugPanel(true)}

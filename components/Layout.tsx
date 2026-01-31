@@ -9,7 +9,7 @@ interface LayoutProps {
   tabs?: string[];
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, sidebar, tabs = ['Preview', 'About'] }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, sidebar, tabs = ['ROM Patcher', 'About'] }) => {
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans">
       {/* Header */}
