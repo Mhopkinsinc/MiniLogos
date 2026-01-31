@@ -73,6 +73,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   const aseInputRef = useRef<HTMLInputElement>(null);
   const [presetJimFiles, setPresetJimFiles] = useState<{ label: string; path: string }[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
+  const [currentFileSource, setCurrentFileSource] = useState<'preset' | 'aseprite' | 'jim' | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -131,6 +132,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       const buffer = await file.arrayBuffer();
       const data = parseJimFile(buffer);
       onJimLoad(data, file.name);
+      setCurrentFileSource('jim');
     } catch (err) {
       console.error('Failed to parse JIM file:', err);
       setError(err instanceof Error ? err.message : 'Failed to parse JIM file');
@@ -151,6 +153,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       const aseData = await parseAseprite(buffer);
       const data = convertAsepriteToJim(aseData, false); // false = enable deduplication
       onJimLoad(data, file.name.replace(/\.(ase|aseprite)$/i, '.jim'));
+      setCurrentFileSource('aseprite');
     } catch (err) {
       console.error('Failed to parse Aseprite file:', err);
       setError(err instanceof Error ? err.message : 'Failed to parse Aseprite file');
@@ -173,6 +176,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       const buffer = await response.arrayBuffer();
       const data = parseJimFile(buffer);
       onJimLoad(data, file.label);
+      setCurrentFileSource('preset');
     } catch (err) {
       console.error('Failed to load preset JIM file:', err);
       setError(err instanceof Error ? err.message : `Unable to load ${file.label}`);
@@ -307,7 +311,10 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         </div>
         {jimData && (
           <div className="mt-3 p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
-            <p className="text-xs text-green-400 font-mono truncate">{jimFilename}</p>
+            <p className="text-[10px] uppercase tracking-wide text-green-300 mb-1">
+              {currentFileSource === 'preset' ? 'Currently loaded preset' : 'Currently loaded file'}
+            </p>
+            <p className="text-xs text-green-400 font-mono truncate" title={jimFilename}>{jimFilename}</p>
           </div>
         )}
       </div>
@@ -344,13 +351,13 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
               label="Export .aseprite" 
               onClick={() => handleExportAseprite('map')}
               disabled={!jimData || isProcessing}
+              variant="primary"
             />
             <ActionButton 
               icon="download" 
               label="Export .jim" 
               onClick={handleExportJim}
               disabled={!jimData || isProcessing}
-              variant="primary"
             />
             <ActionButton 
               icon="image" 
