@@ -152,3 +152,26 @@ const imageData = ctx.getImageData(0, 0, width, height);
 // Recalculate tiles based on the image
 const updatedJim = updateJimFromImage(currentJim, imageData);
 ```
+
+### D. Exporting to PNG
+To export the map, tileset, or palettes as an image, render to a canvas and use standard browser APIs.
+
+```typescript
+// 1. Create a canvas (can be off-screen)
+const canvas = document.createElement('canvas');
+
+// 2. Render content
+// Example: Render Map
+renderMapToCanvas(jimData, canvas);
+// Example: Render Tileset (Palette 0, 1px spacing)
+// renderTilesetToCanvas(jimData, canvas, 0, 1, true);
+
+// 3. Convert to Data URL or Blob
+const dataUrl = canvas.toDataURL('image/png');
+
+// 4. Trigger Download (Browser)
+const link = document.createElement('a');
+link.href = dataUrl;
+link.download = 'map.png';
+link.click();
+```

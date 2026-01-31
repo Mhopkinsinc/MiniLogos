@@ -1,7 +1,16 @@
 import React, { useRef } from 'react';
 import { Icon } from './Icons';
-import { JimData, parseJimFile, createJimFile, createAsepriteBlob } from '../services';
-import { parseAseprite, convertAsepriteToJim } from '../services';
+import {
+  JimData,
+  parseJimFile,
+  createJimFile,
+  createAsepriteBlob,
+  parseAseprite,
+  convertAsepriteToJim,
+  renderMapToCanvas,
+  renderTilesetToCanvas,
+  renderPalettesToCanvas,
+} from '../services';
 import type { ViewMode } from './JimEditor';
 
 interface JimEditorSidebarProps {
@@ -128,27 +137,44 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     }
   };
 
-  const handleExportPng = () => {
+  const handleExportPng = async () => {
     if (!jimData) return;
-    // Get the canvas from the editor (we'll render to a temp canvas)
-    const canvas = document.createElement('canvas');
-    const { renderMapToCanvas, renderTilesetToCanvas } = require('../services');
-    
-    if (viewMode === 'map') {
-      const forcePal = selectedPalette === -1 ? undefined : selectedPalette;
-      renderMapToCanvas(jimData, canvas, forcePal, true);
-    } else {
-      const palIdx = selectedPalette === -1 ? 0 : selectedPalette;
-      renderTilesetToCanvas(jimData, canvas, palIdx, 1, true);
-    }
 
-    canvas.toBlob((blob) => {
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const canvas = document.createElement('canvas');
+
+      if (viewMode === 'map') {
+        const forcePal = selectedPalette === -1 ? undefined : selectedPalette;
+        renderMapToCanvas(jimData, canvas, forcePal, true);
+      } else if (viewMode === 'tileset') {
+        const palIdx = selectedPalette === -1 ? 0 : selectedPalette;
+        renderTilesetToCanvas(jimData, canvas, palIdx, 1, true);
+      } else {
+        renderPalettesToCanvas(jimData, canvas);
+      }
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png')
+      );
+
       if (blob) {
-        const suffix = viewMode === 'map' ? '_map' : '_tileset';
+        const suffix = viewMode === 'map' ? '_map' : viewMode === 'tileset' ? '_tileset' : '_palettes';
         const filename = jimFilename.replace(/\.jim$/i, '') + suffix + '.png';
         downloadBlob(blob, filename);
+        return;
       }
-    }, 'image/png');
+
+      const dataUrl = canvas.toDataURL('image/png');
+      downloadDataUrl(dataUrl, viewMode);
+    } catch (err) {
+      console.error('Failed to export PNG:', err);
+      setError(err instanceof Error ? err.message : 'Failed to export PNG');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const downloadBlob = (blob: Blob, filename: string) => {
@@ -160,6 +186,16 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const downloadDataUrl = (dataUrl: string, mode: ViewMode) => {
+    const a = document.createElement('a');
+    const suffix = mode === 'map' ? '_map' : mode === 'tileset' ? '_tileset' : '_palettes';
+    a.href = dataUrl;
+    a.download = jimFilename.replace(/\.jim$/i, '') + suffix + '.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
