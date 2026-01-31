@@ -4,8 +4,8 @@
   "minilogos/banners_code.asm",
   "minilogos/banners_data.asm",
   "minilogos/banners_hijacks.asm",
-  "minilogos/TeamBlocks.jim_28teams_banners_94_tilesize_clean_base.jim",
-  "minilogos/TeamBlocks.jim_32teams_banners_94_tilesize_clean_base.jim",
-  "minilogos/TeamBlocks.jim_28teams_LogoOnly.jim",
-  "minilogos/TeamBlocks.jim_32teams_LogoOnly.jim"  
+  "minilogos/banners_28_teams.jim",
+  "minilogos/banners_32_teams.jim",
+  "minilogos/minilogos_28_teams.jim",
+  "minilogos/minilogos_32_teams.jim"  
 ]

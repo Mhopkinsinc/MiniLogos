@@ -32,7 +32,7 @@ const App: React.FC = () => {
   const [jimData, setJimData] = useState<JimData | null>(null);
   const [jimFilename, setJimFilename] = useState<string>('');
   const [jimViewMode, setJimViewMode] = useState<ViewMode>('map');
-  const [jimSelectedPalette, setJimSelectedPalette] = useState<number>(-1); // -1 = native
+  const [jimSelectedPalette, setJimSelectedPalette] = useState<number>(1);
   
   const [config, setConfig] = useState<PatchConfig>({
     mode: PatcherMode.FullBanners,
@@ -93,6 +93,7 @@ const App: React.FC = () => {
   const handleJimLoad = (data: JimData, filename: string) => {
     setJimData(data);
     setJimFilename(filename);
+    setJimSelectedPalette(1);
   };
 
   // Render content based on active tab

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icons';
 import {
   JimData,
@@ -71,6 +71,54 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
 }) => {
   const jimInputRef = useRef<HTMLInputElement>(null);
   const aseInputRef = useRef<HTMLInputElement>(null);
+  const [presetJimFiles, setPresetJimFiles] = useState<{ label: string; path: string }[]>([]);
+  const [isLoadingPresets, setIsLoadingPresets] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadPresetList = async () => {
+      setIsLoadingPresets(true);
+      try {
+        const response = await fetch('wasm/scripts/list.json');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch preset list (${response.status})`);
+        }
+
+        const payload = await response.json();
+        if (!Array.isArray(payload)) {
+          throw new Error('Unexpected preset list format');
+        }
+
+        const jimEntries = payload
+          .filter((entry): entry is string => typeof entry === 'string')
+          .filter((entry) => entry.toLowerCase().startsWith('minilogos/') && entry.toLowerCase().endsWith('.jim'))
+          .map((entry) => {
+            const filename = entry.split('/').pop() || entry;
+            return {
+              label: filename,
+              path: `wasm/scripts/${entry.replace(/^\//, '')}`
+            };
+          });
+
+        if (active) {
+          setPresetJimFiles(jimEntries);
+        }
+      } catch (err) {
+        console.error('Failed to load preset .jim list', err);
+      } finally {
+        if (active) {
+          setIsLoadingPresets(false);
+        }
+      }
+    };
+
+    loadPresetList();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // --- File Load Handlers ---
   const handleJimFileLoad = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +160,27 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     }
   };
 
+  const handlePresetJimLoad = async (file: { label: string; path: string }) => {
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const response = await fetch(file.path);
+      if (!response.ok) {
+        throw new Error(`Failed to load ${file.label}`);
+      }
+
+      const buffer = await response.arrayBuffer();
+      const data = parseJimFile(buffer);
+      onJimLoad(data, file.label);
+    } catch (err) {
+      console.error('Failed to load preset JIM file:', err);
+      setError(err instanceof Error ? err.message : `Unable to load ${file.label}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // --- Export Handlers ---
   const handleExportJim = () => {
     if (!jimData) return;
@@ -147,11 +216,9 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       const canvas = document.createElement('canvas');
 
       if (viewMode === 'map') {
-        const forcePal = selectedPalette === -1 ? undefined : selectedPalette;
-        renderMapToCanvas(jimData, canvas, forcePal, true);
+        renderMapToCanvas(jimData, canvas, selectedPalette, true);
       } else if (viewMode === 'tileset') {
-        const palIdx = selectedPalette === -1 ? 0 : selectedPalette;
-        renderTilesetToCanvas(jimData, canvas, palIdx, 1, true);
+        renderTilesetToCanvas(jimData, canvas, selectedPalette, 1, true);
       } else {
         renderPalettesToCanvas(jimData, canvas);
       }
@@ -204,19 +271,36 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       <input type="file" ref={jimInputRef} onChange={handleJimFileLoad} className="hidden" accept=".jim" />
       <input type="file" ref={aseInputRef} onChange={handleAsepriteFileLoad} className="hidden" accept=".ase,.aseprite" />
 
-      {/* Load File Section */}
+      {/* Preset Files Section */}
+      <div className="p-5 border-b border-slate-800 bg-slate-900/70 shrink-0">
+        <SectionHeader icon="layers" title="Preset Files" color="text-emerald-400" />
+        <div className="space-y-2">
+          {presetJimFiles.map((file) => (
+            <ActionButton
+              key={file.path}
+              icon="file"
+              label={file.label}
+              onClick={() => handlePresetJimLoad(file)}
+              disabled={isProcessing}
+              variant={jimFilename === file.label ? 'primary' : 'secondary'}
+            />
+          ))}
+          {isLoadingPresets && (
+            <p className="text-xs text-slate-500">Loading presets...</p>
+          )}
+          {!isLoadingPresets && presetJimFiles.length === 0 && (
+            <p className="text-xs text-slate-600">No preset .jim files found.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Import File Section */}
       <div className="p-5 border-b border-slate-800 bg-slate-900/50 shrink-0">
-        <SectionHeader icon="upload" title="Load File" color="text-indigo-400" />
+        <SectionHeader icon="upload" title="Import File" color="text-indigo-400" />
         <div className="space-y-2">
           <ActionButton 
-            icon="file" 
-            label="Load .jim File" 
-            onClick={() => jimInputRef.current?.click()}
-            disabled={isProcessing}
-          />
-          <ActionButton 
             icon="layers" 
-            label="Load .aseprite File" 
+            label="Import .aseprite File" 
             onClick={() => aseInputRef.current?.click()}
             disabled={isProcessing}
           />
@@ -233,19 +317,8 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         
         {/* Palette Selection */}
         <div className="p-5 border-b border-slate-800">
-          <SectionHeader icon="palette" title="Palette" color="text-amber-400" />
-          <div className="grid grid-cols-5 gap-2">
-            <button
-              onClick={() => onPaletteChange(-1)}
-              className={`px-2 py-2 rounded text-xs font-medium transition-all border ${
-                selectedPalette === -1 
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 border-transparent text-white' 
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
-              }`}
-              title="Use native palette per cell (Map mode only)"
-            >
-              Native
-            </button>
+          <SectionHeader icon="palette" title="Genesis Palette" color="text-amber-400" />
+          <div className="grid grid-cols-4 gap-2">
             {[0, 1, 2, 3].map(i => (
               <button
                 key={i}
@@ -267,17 +340,17 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
           <SectionHeader icon="download" title="Export" color="text-rose-400" />
           <div className="space-y-2">
             <ActionButton 
+              icon="layers" 
+              label="Export .aseprite" 
+              onClick={() => handleExportAseprite('map')}
+              disabled={!jimData || isProcessing}
+            />
+            <ActionButton 
               icon="download" 
               label="Export .jim" 
               onClick={handleExportJim}
               disabled={!jimData || isProcessing}
               variant="primary"
-            />
-            <ActionButton 
-              icon="layers" 
-              label="Export Aseprite (Map)" 
-              onClick={() => handleExportAseprite('map')}
-              disabled={!jimData || isProcessing}
             />
             <ActionButton 
               icon="image" 
