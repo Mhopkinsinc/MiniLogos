@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
 import { JimData, renderMapToCanvas, renderTilesetToCanvas, renderPalettesToCanvas } from '../services';
 import { Icon } from './Icons';
 
@@ -26,25 +26,32 @@ const JimEditor: React.FC<JimEditorProps> = ({
   const transparentBg = true; // Always use transparent background
 
   // Render main canvas (map, tileset, or palettes)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!jimData || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
 
     if (viewMode === 'map') {
       // forcePaletteIndex: -1 means use native (per-cell) palettes, otherwise use selected
       const forcePal = selectedPalette === -1 ? undefined : selectedPalette;
-      renderMapToCanvas(jimData, canvasRef.current, forcePal, transparentBg);
+      renderMapToCanvas(jimData, canvas, forcePal, transparentBg);
     } else if (viewMode === 'tileset') {
       // Tileset view always uses a specific palette (default to 0 if native selected)
       const palIdx = selectedPalette === -1 ? 0 : selectedPalette;
-      renderTilesetToCanvas(jimData, canvasRef.current, palIdx, 1, transparentBg);
+      renderTilesetToCanvas(jimData, canvas, palIdx, 1, transparentBg);
     } else if (viewMode === 'palettes') {
-      renderPalettesToCanvas(jimData, canvasRef.current);
+      renderPalettesToCanvas(jimData, canvas);
     }
     
     // Update canvas size state for proper scaling container
-    if (canvasRef.current) {
-      setCanvasSize({ width: canvasRef.current.width, height: canvasRef.current.height });
-    }
+    setCanvasSize(prev => {
+      const nextWidth = canvas.width;
+      const nextHeight = canvas.height;
+      if (prev.width === nextWidth && prev.height === nextHeight) {
+        return prev;
+      }
+      return { width: nextWidth, height: nextHeight };
+    });
   }, [jimData, viewMode, selectedPalette, transparentBg]);
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 1, 8));
