@@ -146,6 +146,7 @@ const App: React.FC = () => {
           viewMode={jimViewMode}
           onViewModeChange={setJimViewMode}
           selectedPalette={jimSelectedPalette}
+          onPaletteChange={setJimSelectedPalette}
         />
       );
     } else if (activeTab === 'About') {
@@ -204,7 +205,6 @@ const App: React.FC = () => {
           onJimLoad={handleJimLoad}
           viewMode={jimViewMode}
           selectedPalette={jimSelectedPalette}
-          onPaletteChange={setJimSelectedPalette}
           isProcessing={isProcessing}
           setIsProcessing={setIsProcessing}
           setError={setError}

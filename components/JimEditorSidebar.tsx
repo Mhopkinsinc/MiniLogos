@@ -20,7 +20,6 @@ interface JimEditorSidebarProps {
   onJimLoad: (data: JimData, filename: string) => void;
   viewMode: ViewMode;
   selectedPalette: number;
-  onPaletteChange: (palette: number) => void;
   isProcessing: boolean;
   setIsProcessing: (value: boolean) => void;
   setError: (error: string | null) => void;
@@ -68,7 +67,6 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   onJimLoad,
   viewMode,
   selectedPalette,
-  onPaletteChange,
   isProcessing,
   setIsProcessing,
   setError,
@@ -76,15 +74,16 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   onPresetOverride,
   onClearPresetOverride
 }) => {
-  const jimInputRef = useRef<HTMLInputElement>(null);
   const aseInputRef = useRef<HTMLInputElement>(null);
   const [presetJimFiles, setPresetJimFiles] = useState<{ label: string; path: string }[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [currentFileSource, setCurrentFileSource] = useState<'preset' | 'aseprite' | 'jim' | null>(null);
   
-  // State for the preset selection modal
-  const [showPresetModal, setShowPresetModal] = useState(false);
-  const [pendingAsepriteData, setPendingAsepriteData] = useState<{ data: JimData; filename: string } | null>(null);
+  // State for export dropdown
+  const [openExportDropdown, setOpenExportDropdown] = useState<string | null>(null);
+  
+  // State for targeted import (when importing for a specific preset)
+  const [targetPresetForImport, setTargetPresetForImport] = useState<{ label: string; path: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -133,26 +132,6 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   }, []);
 
   // --- File Load Handlers ---
-  const handleJimFileLoad = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setIsProcessing(true);
-    setError(null);
-    try {
-      const buffer = await file.arrayBuffer();
-      const data = parseJimFile(buffer);
-      onJimLoad(data, file.name);
-      setCurrentFileSource('jim');
-    } catch (err) {
-      console.error('Failed to parse JIM file:', err);
-      setError(err instanceof Error ? err.message : 'Failed to parse JIM file');
-    } finally {
-      setIsProcessing(false);
-      if (jimInputRef.current) jimInputRef.current.value = '';
-    }
-  };
-
   const handleAsepriteFileLoad = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -163,55 +142,39 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       const buffer = await file.arrayBuffer();
       const aseData = await parseAseprite(buffer);
       const data = convertAsepriteToJim(aseData, false); // false = enable deduplication
+      const filename = file.name.replace(/\.(ase|aseprite)$/i, '.jim');
       
-      // Store the pending data and show the preset selection modal
-      setPendingAsepriteData({ data, filename: file.name.replace(/\.(ase|aseprite)$/i, '.jim') });
-      setShowPresetModal(true);
+      // Load the data into the editor
+      onJimLoad(data, filename);
+      setCurrentFileSource('aseprite');
+
+      // If we have a target preset, create the override directly
+      if (targetPresetForImport) {
+        try {
+          const jimBytes = createJimFile(data);
+          const relativePath = targetPresetForImport.path.replace(/^wasm\/scripts\//, '');
+          onPresetOverride(relativePath, jimBytes, filename);
+        } catch (err) {
+          console.error('Failed to create JIM override:', err);
+          setError(err instanceof Error ? err.message : 'Failed to create preset override');
+        }
+        setTargetPresetForImport(null);
+      }
     } catch (err) {
       console.error('Failed to parse Aseprite file:', err);
       setError(err instanceof Error ? err.message : 'Failed to parse Aseprite file');
+      setTargetPresetForImport(null);
     } finally {
       setIsProcessing(false);
       if (aseInputRef.current) aseInputRef.current.value = '';
     }
   };
 
-  // Handle preset selection from modal
-  const handlePresetSelection = (presetFile: { label: string; path: string } | null) => {
-    if (!pendingAsepriteData) {
-      setShowPresetModal(false);
-      return;
-    }
-
-    const { data, filename } = pendingAsepriteData;
-
-    // Load the data into the editor
-    onJimLoad(data, filename);
-    setCurrentFileSource('aseprite');
-
-    // If a preset was selected, create the override
-    if (presetFile) {
-      try {
-        // Convert JimData to binary format
-        const jimBytes = createJimFile(data);
-        // Extract the relative path (e.g., "minilogos/minilogos_32_teams.jim")
-        const relativePath = presetFile.path.replace(/^wasm\/scripts\//, '');
-        onPresetOverride(relativePath, jimBytes, filename);
-      } catch (err) {
-        console.error('Failed to create JIM override:', err);
-        setError(err instanceof Error ? err.message : 'Failed to create preset override');
-      }
-    }
-
-    // Clean up
-    setPendingAsepriteData(null);
-    setShowPresetModal(false);
-  };
-
-  // Cancel preset selection
-  const handleCancelPresetSelection = () => {
-    setPendingAsepriteData(null);
-    setShowPresetModal(false);
+  // Trigger import for a specific preset
+  const handleImportForPreset = (file: { label: string; path: string }) => {
+    setTargetPresetForImport(file);
+    setOpenExportDropdown(null);
+    aseInputRef.current?.click();
   };
 
   const handlePresetJimLoad = async (file: { label: string; path: string }) => {
@@ -219,15 +182,27 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     setError(null);
 
     try {
-      const response = await fetch(file.path);
-      if (!response.ok) {
-        throw new Error(`Failed to load ${file.label}`);
-      }
+      // Check if there's an override for this preset
+      const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+      const override = presetOverrides.get(relativePath);
 
-      const buffer = await response.arrayBuffer();
-      const data = parseJimFile(buffer);
-      onJimLoad(data, file.label);
-      setCurrentFileSource('preset');
+      if (override) {
+        // Load the override data instead of the original preset
+        const data = parseJimFile(override.jimData.buffer);
+        onJimLoad(data, override.sourceName || file.label);
+        setCurrentFileSource('aseprite');
+      } else {
+        // Load the original preset
+        const response = await fetch(file.path);
+        if (!response.ok) {
+          throw new Error(`Failed to load ${file.label}`);
+        }
+
+        const buffer = await response.arrayBuffer();
+        const data = parseJimFile(buffer);
+        onJimLoad(data, file.label);
+        setCurrentFileSource('preset');
+      }
     } catch (err) {
       console.error('Failed to load preset JIM file:', err);
       setError(err instanceof Error ? err.message : `Unable to load ${file.label}`);
@@ -237,21 +212,58 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   };
 
   // --- Export Handlers ---
-  const handleExportJim = () => {
-    if (!jimData) return;
-    const bytes = createJimFile(jimData);
-    const blob = new Blob([new Uint8Array(bytes)], { type: 'application/octet-stream' });
-    downloadBlob(blob, jimFilename || 'export.jim');
+  const handleExportJimForPreset = async (file: { label: string; path: string }) => {
+    setOpenExportDropdown(null);
+    
+    // Check if there's an override for this preset
+    const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+    const override = presetOverrides.get(relativePath);
+    
+    if (override) {
+      // Export the override data
+      const blob = new Blob([override.jimData], { type: 'application/octet-stream' });
+      downloadBlob(blob, file.label);
+    } else {
+      // Load the preset and export it
+      setIsProcessing(true);
+      try {
+        const response = await fetch(file.path);
+        if (!response.ok) throw new Error(`Failed to load ${file.label}`);
+        const buffer = await response.arrayBuffer();
+        const blob = new Blob([buffer], { type: 'application/octet-stream' });
+        downloadBlob(blob, file.label);
+      } catch (err) {
+        console.error('Failed to export JIM:', err);
+        setError(err instanceof Error ? err.message : 'Failed to export JIM file');
+      } finally {
+        setIsProcessing(false);
+      }
+    }
   };
 
-  const handleExportAseprite = async (mode: 'map' | 'tileset') => {
-    if (!jimData) return;
+  const handleExportAsepriteForPreset = async (file: { label: string; path: string }) => {
+    setOpenExportDropdown(null);
     setIsProcessing(true);
+    
     try {
+      const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+      const override = presetOverrides.get(relativePath);
+      
+      let data: JimData;
+      if (override) {
+        // Parse the override data
+        data = parseJimFile(override.jimData.buffer);
+      } else {
+        // Load and parse the preset
+        const response = await fetch(file.path);
+        if (!response.ok) throw new Error(`Failed to load ${file.label}`);
+        const buffer = await response.arrayBuffer();
+        data = parseJimFile(buffer);
+      }
+      
       const palIdx = selectedPalette === -1 ? -1 : selectedPalette;
-      const blob = await createAsepriteBlob(jimData, mode, palIdx, true);
-      const suffix = mode === 'map' ? '_map' : '_tileset';
-      const filename = jimFilename.replace(/\.jim$/i, '') + suffix + '.aseprite';
+      const blob = await createAsepriteBlob(data, 'map', palIdx, true);
+      const filename = file.label.replace(/\.jim$/i, '.aseprite');
       downloadBlob(blob, filename);
     } catch (err) {
       console.error('Failed to export Aseprite:', err);
@@ -261,36 +273,35 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     }
   };
 
-  const handleExportPng = async () => {
-    if (!jimData) return;
-
+  const handleExportPngForPreset = async (file: { label: string; path: string }) => {
+    setOpenExportDropdown(null);
     setIsProcessing(true);
-    setError(null);
-
+    
     try {
-      const canvas = document.createElement('canvas');
-
-      if (viewMode === 'map') {
-        renderMapToCanvas(jimData, canvas, selectedPalette, true);
-      } else if (viewMode === 'tileset') {
-        renderTilesetToCanvas(jimData, canvas, selectedPalette, 1, true);
+      const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+      const override = presetOverrides.get(relativePath);
+      
+      let data: JimData;
+      if (override) {
+        data = parseJimFile(override.jimData.buffer);
       } else {
-        renderPalettesToCanvas(jimData, canvas);
+        const response = await fetch(file.path);
+        if (!response.ok) throw new Error(`Failed to load ${file.label}`);
+        const buffer = await response.arrayBuffer();
+        data = parseJimFile(buffer);
       }
-
+      
+      const canvas = document.createElement('canvas');
+      renderMapToCanvas(data, canvas, selectedPalette, true);
+      
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/png')
       );
-
+      
       if (blob) {
-        const suffix = viewMode === 'map' ? '_map' : viewMode === 'tileset' ? '_tileset' : '_palettes';
-        const filename = jimFilename.replace(/\.jim$/i, '') + suffix + '.png';
+        const filename = file.label.replace(/\.jim$/i, '.png');
         downloadBlob(blob, filename);
-        return;
       }
-
-      const dataUrl = canvas.toDataURL('image/png');
-      downloadDataUrl(dataUrl, viewMode);
     } catch (err) {
       console.error('Failed to export PNG:', err);
       setError(err instanceof Error ? err.message : 'Failed to export PNG');
@@ -310,104 +321,134 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const downloadDataUrl = (dataUrl: string, mode: ViewMode) => {
-    const a = document.createElement('a');
-    const suffix = mode === 'map' ? '_map' : mode === 'tileset' ? '_tileset' : '_palettes';
-    a.href = dataUrl;
-    a.download = jimFilename.replace(/\.jim$/i, '') + suffix + '.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (openExportDropdown && !(e.target as Element).closest('.export-dropdown')) {
+        setOpenExportDropdown(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openExportDropdown]);
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Hidden File Inputs */}
-      <input type="file" ref={jimInputRef} onChange={handleJimFileLoad} className="hidden" accept=".jim" />
+      {/* Hidden File Input */}
       <input type="file" ref={aseInputRef} onChange={handleAsepriteFileLoad} className="hidden" accept=".ase,.aseprite" />
 
-      {/* Preset Selection Modal */}
-      {showPresetModal && pendingAsepriteData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-            <div className="p-5 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-white">Select Target Preset</h3>
-              <p className="text-sm text-slate-400 mt-1">
-                Choose which preset file to replace with your imported Aseprite file, or skip to just view in the editor.
-              </p>
-            </div>
-            <div className="p-5 space-y-2 max-h-64 overflow-y-auto">
-              {presetJimFiles.map((file) => {
-                const relativePath = file.path.replace(/^wasm\/scripts\//, '');
-                const hasOverride = presetOverrides.has(relativePath);
-                return (
-                  <button
-                    key={file.path}
-                    onClick={() => handlePresetSelection(file)}
-                    className={`
-                      w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all
-                      bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700
-                      active:scale-[0.98]
-                    `}
-                  >
-                    <Icon name="file" className="w-4 h-4 text-emerald-400" />
-                    <span className="flex-1 text-left">{file.label}</span>
-                    {hasOverride && (
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                        Modified
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="p-5 border-t border-slate-800 flex gap-3">
-              <button
-                onClick={() => handlePresetSelection(null)}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
-              >
-                Skip (View Only)
-              </button>
-              <button
-                onClick={handleCancelPresetSelection}
-                className="px-4 py-2.5 rounded-lg text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 transition-all"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Preset Files Section */}
-      <div className="p-5 border-b border-slate-800 bg-slate-900/70 shrink-0">
-        <SectionHeader icon="layers" title="Select File to Export" color="text-emerald-400" />
-        <div className="space-y-2">
+      <div className="flex-1 overflow-y-auto p-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
+        <SectionHeader icon="layers" title="Preset Files" color="text-emerald-400" />
+        <p className="text-xs text-slate-500 mb-4">
+          Select a preset to view. Use the actions to import custom graphics or export.
+        </p>
+        <div className="space-y-3">
           {presetJimFiles.map((file) => {
             const relativePath = file.path.replace(/^wasm\/scripts\//, '');
             const override = presetOverrides.get(relativePath);
+            const isSelected = jimFilename === file.label || (override && jimFilename === override.sourceName);
+            const isDropdownOpen = openExportDropdown === file.path;
+            
             return (
-              <div key={file.path} className="relative">
-                <ActionButton
-                  icon="file"
-                  label={file.label}
+              <div 
+                key={file.path} 
+                className={`
+                  relative rounded-lg border transition-all
+                  ${isSelected 
+                    ? 'bg-blue-600/20 border-blue-500/50' 
+                    : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}
+                `}
+              >
+                {/* Main preset button - click to view */}
+                <button
                   onClick={() => handlePresetJimLoad(file)}
                   disabled={isProcessing}
-                  variant={jimFilename === file.label ? 'primary' : 'secondary'}
-                />
+                  className={`
+                    w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-t-lg
+                    ${isSelected ? 'text-white' : 'text-slate-300 hover:text-white'}
+                    ${isProcessing ? 'cursor-not-allowed opacity-50' : ''}
+                  `}
+                >
+                  <Icon name="file" className={`w-4 h-4 ${override ? 'text-amber-400' : 'text-emerald-400'}`} />
+                  <span className="flex-1 text-left truncate">{file.label}</span>
+                  {override && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      Modified
+                    </span>
+                  )}
+                </button>
+
+                {/* Override indicator */}
                 {override && (
-                  <div className="mt-1 flex items-center justify-between px-2">
+                  <div className="px-4 pb-2 flex items-center justify-between">
                     <span className="text-[10px] text-amber-400 truncate" title={override.sourceName}>
                       ⚡ Override: {override.sourceName}
                     </span>
                     <button
                       onClick={() => onClearPresetOverride(relativePath)}
-                      className="text-[10px] text-red-400 hover:text-red-300 underline"
+                      className="text-[10px] text-red-400 hover:text-red-300 underline ml-2"
                     >
                       Clear
                     </button>
                   </div>
                 )}
+
+                {/* Action buttons row */}
+                <div className="flex items-center gap-2 px-3 pb-3">
+                  {/* Import button */}
+                  <button
+                    onClick={() => handleImportForPreset(file)}
+                    disabled={isProcessing}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/30 hover:text-indigo-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Icon name="upload" className="w-3.5 h-3.5" />
+                    Import
+                  </button>
+
+                  {/* Export dropdown */}
+                  <div className="relative export-dropdown">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenExportDropdown(isDropdownOpen ? null : file.path);
+                      }}
+                      disabled={isProcessing}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded bg-rose-600/20 border border-rose-500/30 text-rose-400 hover:bg-rose-600/30 hover:text-rose-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Icon name="download" className="w-3.5 h-3.5" />
+                      Export
+                      <Icon name="chevronDown" className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Dropdown menu */}
+                    {isDropdownOpen && (
+                      <div className="absolute left-0 top-full mt-1 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-xl min-w-[140px] py-1">
+                        <button
+                          onClick={() => handleExportAsepriteForPreset(file)}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                        >
+                          <Icon name="layers" className="w-3.5 h-3.5 text-purple-400" />
+                          .aseprite
+                        </button>
+                        <button
+                          onClick={() => handleExportJimForPreset(file)}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                        >
+                          <Icon name="file" className="w-3.5 h-3.5 text-emerald-400" />
+                          .jim
+                        </button>
+                        <button
+                          onClick={() => handleExportPngForPreset(file)}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                        >
+                          <Icon name="image" className="w-3.5 h-3.5 text-blue-400" />
+                          .png
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -420,76 +461,17 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         </div>
       </div>
 
-      {/* Import File Section */}
-      <div className="p-5 border-b border-slate-800 bg-slate-900/50 shrink-0">
-        <SectionHeader icon="upload" title="Import File" color="text-indigo-400" />
-        <div className="space-y-2">
-          <ActionButton 
-            icon="layers" 
-            label="Import .aseprite File" 
-            onClick={() => aseInputRef.current?.click()}
-            disabled={isProcessing}
-          />
-        </div>
-        {jimData && (
-          <div className="mt-3 p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+      {/* Currently loaded indicator */}
+      {jimData && (
+        <div className="p-4 border-t border-slate-800 bg-slate-900/80 shrink-0">
+          <div className="p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
             <p className="text-[10px] uppercase tracking-wide text-green-300 mb-1">
-              {currentFileSource === 'preset' ? 'Currently loaded preset' : 'Currently loaded file'}
+              {currentFileSource === 'preset' ? 'Viewing preset' : 'Viewing imported file'}
             </p>
             <p className="text-xs text-green-400 font-mono truncate" title={jimFilename}>{jimFilename}</p>
           </div>
-        )}
-      </div>
-
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto pb-32 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
-        
-        {/* Palette Selection */}
-        <div className="p-5 border-b border-slate-800">
-          <SectionHeader icon="palette" title="Genesis Palette" color="text-amber-400" />
-          <div className="grid grid-cols-4 gap-2">
-            {[0, 1, 2, 3].map(i => (
-              <button
-                key={i}
-                onClick={() => onPaletteChange(i)}
-                className={`px-3 py-2 rounded text-xs font-mono font-bold transition-all border ${
-                  selectedPalette === i 
-                    ? 'bg-blue-600 border-blue-500 text-white' 
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
-                }`}
-              >
-                {i}
-              </button>
-            ))}
-          </div>
         </div>
-
-        {/* Export Actions */}
-        <div className="p-5 border-b border-slate-800">
-          <SectionHeader icon="download" title="Export" color="text-rose-400" />
-          <div className="space-y-2">
-            <ActionButton 
-              icon="layers" 
-              label="Export .aseprite" 
-              onClick={() => handleExportAseprite('map')}
-              disabled={!jimData || isProcessing}
-              variant="primary"
-            />
-            <ActionButton 
-              icon="download" 
-              label="Export .jim" 
-              onClick={handleExportJim}
-              disabled={!jimData || isProcessing}
-            />
-            <ActionButton 
-              icon="image" 
-              label="Export PNG" 
-              onClick={handleExportPng}
-              disabled={!jimData || isProcessing}
-            />
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

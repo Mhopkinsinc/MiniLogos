@@ -10,6 +10,7 @@ interface JimEditorProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   selectedPalette: number;
+  onPaletteChange: (palette: number) => void;
 }
 
 const JimEditor: React.FC<JimEditorProps> = ({ 
@@ -17,7 +18,8 @@ const JimEditor: React.FC<JimEditorProps> = ({
   jimFilename,
   viewMode,
   onViewModeChange,
-  selectedPalette
+  selectedPalette,
+  onPaletteChange
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -96,6 +98,25 @@ const JimEditor: React.FC<JimEditorProps> = ({
                   className="w-3.5 h-3.5" 
                 />
                 {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Palette Selection */}
+          <div className="flex items-center bg-slate-950 rounded-md p-1 border border-slate-800">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wide px-2">Palette</span>
+            {[0, 1, 2, 3].map(i => (
+              <button
+                key={i}
+                onClick={() => onPaletteChange(i)}
+                className={`
+                  w-7 h-7 flex items-center justify-center text-xs font-mono font-bold rounded transition-all
+                  ${selectedPalette === i 
+                    ? 'bg-amber-600 text-white' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}
+                `}
+              >
+                {i}
               </button>
             ))}
           </div>
