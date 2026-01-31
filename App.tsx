@@ -26,7 +26,9 @@ const App: React.FC = () => {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [downloadFilename, setDownloadFilename] = useState<string>('patched.bin');
   const [error, setError] = useState<string | null>(null);
-  const [showInstructions, setShowInstructions] = useState(true);
+  const [showRomInstructions, setShowRomInstructions] = useState(true);
+  const [showTileInstructions, setShowTileInstructions] = useState(false);
+  const [hasShownTileInstructions, setHasShownTileInstructions] = useState(false);
 
   // Tile Editor state (persists across tab switches until new file loaded)
   const [jimData, setJimData] = useState<JimData | null>(null);
@@ -51,6 +53,13 @@ const App: React.FC = () => {
       if (downloadUrl) URL.revokeObjectURL(downloadUrl);
     };
   }, [downloadUrl]);
+
+  useEffect(() => {
+    if (activeTab === 'Tile Editor' && !hasShownTileInstructions) {
+      setShowTileInstructions(true);
+      setHasShownTileInstructions(true);
+    }
+  }, [activeTab, hasShownTileInstructions]);
 
   const handleFileSelect = (file: RomFile) => {
     setCurrentFile(file);
@@ -213,8 +222,11 @@ const App: React.FC = () => {
       {renderContent()}
 
       {/* Instructions Modal */}
-      {showInstructions && (
-        <InstructionsModal onClose={() => setShowInstructions(false)} />
+      {activeTab === 'ROM Patcher' && showRomInstructions && (
+        <InstructionsModal onClose={() => setShowRomInstructions(false)} />
+      )}
+      {activeTab === 'Tile Editor' && showTileInstructions && (
+        <InstructionsModal variant="tile" onClose={() => setShowTileInstructions(false)} />
       )}
 
       {/* Debug Panel - Only shown in dev mode on ROM Patcher tab */}
