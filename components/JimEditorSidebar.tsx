@@ -75,7 +75,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   onClearPresetOverride
 }) => {
   const aseInputRef = useRef<HTMLInputElement>(null);
-  const [presetJimFiles, setPresetJimFiles] = useState<{ label: string; path: string }[]>([]);
+  const [presetJimFiles, setPresetJimFiles] = useState<{ label: string; displayName: string; path: string }[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [currentFileSource, setCurrentFileSource] = useState<'preset' | 'aseprite' | 'jim' | null>(null);
   
@@ -83,7 +83,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   const [openExportDropdown, setOpenExportDropdown] = useState<string | null>(null);
   
   // State for targeted import (when importing for a specific preset)
-  const [targetPresetForImport, setTargetPresetForImport] = useState<{ label: string; path: string } | null>(null);
+  const [targetPresetForImport, setTargetPresetForImport] = useState<{ label: string; displayName: string; path: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -102,13 +102,21 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         }
 
         const jimEntries = payload
-          .filter((entry): entry is string => typeof entry === 'string')
-          .filter((entry) => entry.toLowerCase().startsWith('minilogos/') && entry.toLowerCase().endsWith('.jim'))
+          .filter((entry): entry is string | { path: string; displayName?: string } => 
+            typeof entry === 'string' || (typeof entry === 'object' && entry !== null && 'path' in entry)
+          )
           .map((entry) => {
-            const filename = entry.split('/').pop() || entry;
+            const entryPath = typeof entry === 'string' ? entry : entry.path;
+            const displayName = typeof entry === 'object' && entry.displayName ? entry.displayName : undefined;
+            return { entryPath, displayName };
+          })
+          .filter(({ entryPath }) => entryPath.toLowerCase().startsWith('minilogos/') && entryPath.toLowerCase().endsWith('.jim'))
+          .map(({ entryPath, displayName }) => {
+            const filename = entryPath.split('/').pop() || entryPath;
             return {
               label: filename,
-              path: `wasm/scripts/${entry.replace(/^\//, '')}`
+              displayName: displayName || filename,
+              path: `wasm/scripts/${entryPath.replace(/^\//, '')}`
             };
           });
 
@@ -371,7 +379,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
                   `}
                 >
                   <Icon name="file" className={`w-4 h-4 ${override ? 'text-amber-400' : 'text-emerald-400'}`} />
-                  <span className="flex-1 text-left truncate">{file.label}</span>
+                  <span className="flex-1 text-left truncate">{file.displayName}</span>
                   {override && (
                     <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
                       Modified

@@ -125,7 +125,11 @@ export const patchRom = async (
     try {
       const manifestRes = await fetch('/wasm/scripts/list.json');
       if (manifestRes.ok) {
-        scriptFiles = await manifestRes.json();
+        const manifest = await manifestRes.json();
+        // Handle both string entries and object entries with { path, displayName }
+        scriptFiles = manifest.map((entry: string | { path: string }) => 
+          typeof entry === 'string' ? entry : entry.path
+        );
       }
     } catch {}
 

@@ -4,8 +4,8 @@
   "minilogos/banners_code.asm",
   "minilogos/banners_data.asm",
   "minilogos/banners_hijacks.asm",
-  "minilogos/banners_28_teams.jim",
-  "minilogos/banners_32_teams.jim",
-  "minilogos/minilogos_28_teams.jim",
-  "minilogos/minilogos_32_teams.jim"  
+  { "path": "minilogos/banners_28_teams.jim", "displayName": "Banners (28 Teams)" },
+  { "path": "minilogos/banners_32_teams.jim", "displayName": "Banners (32 Teams)" },
+  { "path": "minilogos/minilogos_28_teams.jim", "displayName": "Mini Logos (28 Teams)" },
+  { "path": "minilogos/minilogos_32_teams.jim", "displayName": "Mini Logos (32 Teams)" }
 ]
