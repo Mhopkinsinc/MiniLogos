@@ -14,6 +14,13 @@ import {
 import type { ViewMode } from './JimEditor';
 import type { PresetOverrides } from '../services/patcherService';
 
+// Helper to get asset URL with correct base path for both local dev and GitHub Pages
+const getAssetUrl = (path: string) => {
+  const base = import.meta.env.BASE_URL || '/';
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+  return `${normalizedBase}${path}`;
+};
+
 interface JimEditorSidebarProps {
   jimData: JimData | null;
   jimFilename: string;
@@ -92,7 +99,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     const loadPresetList = async () => {
       setIsLoadingPresets(true);
       try {
-        const response = await fetch('wasm/scripts/list.json');
+        const response = await fetch(getAssetUrl('wasm/scripts/list.json'));
         if (!response.ok) {
           throw new Error(`Failed to fetch preset list (${response.status})`);
         }
@@ -117,7 +124,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
             return {
               label: filename,
               displayName: displayName || filename,
-              path: `wasm/scripts/${entryPath.replace(/^\//, '')}`
+              path: getAssetUrl(`wasm/scripts/${entryPath.replace(/^\//, '')}`)
             };
           });
 

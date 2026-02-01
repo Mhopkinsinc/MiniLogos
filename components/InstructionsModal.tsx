@@ -16,7 +16,7 @@ const instructionsContent: Record<InstructionVariant, {
 }> = {
   patcher: {
     heading: "Patching Basics",
-    videoUrl: '/tutorials/patching-tutorial.mp4',
+    videoUrl: 'tutorials/patching-tutorial.mp4',
     steps: [
       {
         title: "Upload ROM",
@@ -34,7 +34,7 @@ const instructionsContent: Record<InstructionVariant, {
   },
   tile: {
     heading: "Custom Tile Editing",
-    videoUrl: '/tutorials/tile-editing-tutorial.mp4',
+    videoUrl: 'tutorials/tile-editing-tutorial.mp4',
     steps: [
       {
         title: "Select Preset Files to Export",
@@ -60,8 +60,17 @@ const instructionsContent: Record<InstructionVariant, {
   },
 };
 
+const getVideoUrl = (path?: string) => {
+  if (!path) return undefined;
+  const base = import.meta.env.BASE_URL || '/';
+  // Ensure base ends with slash
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+  return `${normalizedBase}${path}`;
+};
+
 const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose, variant = 'patcher' }) => {
   const content = instructionsContent[variant];
+  const videoUrl = getVideoUrl(content.videoUrl);
   const videoRef = useRef<HTMLVideoElement>(null);
   const expandedVideoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -98,7 +107,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose, variant 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-[2px]">
       {/* Expanded video lightbox */}
-      {isExpanded && content.videoUrl && (
+      {isExpanded && videoUrl && (
         <div 
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90"
           onClick={closeExpanded}
@@ -113,7 +122,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose, variant 
             </button>
             <video
               ref={expandedVideoRef}
-              src={content.videoUrl}
+              src={videoUrl}
               controls
               autoPlay
               loop
@@ -140,14 +149,14 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose, variant 
         </div>
 
         {/* Video Tutorial */}
-        {content.videoUrl && !videoError && (
+        {videoUrl && !videoError && (
           <div 
             className="relative mb-5 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer group"
             onClick={openExpanded}
           >
             <video
               ref={videoRef}
-              src={content.videoUrl}
+              src={videoUrl}
               loop
               muted
               playsInline
@@ -170,7 +179,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose, variant 
         )}
 
         {/* Video placeholder when not yet recorded */}
-        {content.videoUrl && videoError && (
+        {videoUrl && videoError && (
           <div className="mb-5 rounded-lg border border-slate-700 bg-slate-950 p-8 flex flex-col items-center justify-center text-slate-500">
             <Icon name="play" className="w-8 h-8 mb-2 opacity-50" />
             <span className="text-xs">Tutorial video coming soon</span>

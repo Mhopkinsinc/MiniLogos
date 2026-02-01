@@ -1,6 +1,13 @@
 // Store all captured output from the assembler
 let capturedOutput: string[] = [];
 
+// Helper to get asset URL with correct base path for both local dev and GitHub Pages
+const getAssetUrl = (path: string) => {
+  const base = import.meta.env.BASE_URL || '/';
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+  return `${normalizedBase}${path}`;
+};
+
 /**
  * Get all captured output from the last assembly run
  */
@@ -16,15 +23,47 @@ export function clearCapturedOutput(): void {
 }
 
 export async function loadClownAssembler(): Promise<any> {
-  // Build the runtime URL to the file in `public/wasm` so Vite doesn't
-  // attempt to statically analyze it. Use a dynamic import with
-  // `/* @vite-ignore */` so the path is evaluated at runtime.
-  const url = `${typeof window !== 'undefined' && window.location ? window.location.origin : ''}/wasm/clownassembler_asm68k.js`;
+  // Build the runtime URL to the file in `public/wasm`.
+  const url = getAssetUrl('wasm/clownassembler_asm68k.js');
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - dynamic import with runtime URL
-  const mod = await import(/* @vite-ignore */ url);
-  const ModuleFactory = mod.default;
+  // Load the Emscripten glue script as an ES module
+  // The script uses import.meta, so it must be loaded as type="module"
+  const ModuleFactory = await new Promise<any>((resolve, reject) => {
+    // Check if already loaded
+    if ((window as any).__clownAssemblerFactory) {
+      resolve((window as any).__clownAssemblerFactory);
+      return;
+    }
+
+    // Create a dynamic import via a blob URL to bypass Vite's static analysis
+    // This works because the blob is evaluated at runtime, not build time
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+        return res.text();
+      })
+      .then(scriptText => {
+        // Create a blob URL from the script content
+        const blob = new Blob([scriptText], { type: 'application/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Dynamically import the blob URL (this works with ES modules)
+        return import(/* @vite-ignore */ blobUrl).then(mod => {
+          URL.revokeObjectURL(blobUrl);
+          return mod;
+        });
+      })
+      .then(mod => {
+        const factory = mod.default || mod.Module || mod;
+        if (factory) {
+          (window as any).__clownAssemblerFactory = factory;
+          resolve(factory);
+        } else {
+          reject(new Error('Module factory not found after script load'));
+        }
+      })
+      .catch(reject);
+  });
   
   // Capture all output from the assembler
   const captureOutput = (s: any) => {
@@ -40,9 +79,9 @@ export async function loadClownAssembler(): Promise<any> {
       // The asm68k glue may request a specific wasm filename; ensure we
       // map any wasm request to the asm68k wasm binary.
       if (typeof path === 'string' && path.endsWith('.wasm')) {
-        return `/wasm/clownassembler_asm68k.wasm`;
+        return getAssetUrl('wasm/clownassembler_asm68k.wasm');
       }
-      return `/wasm/${path}`;
+      return getAssetUrl(`wasm/${path}`);
     },
     print: captureOutput,
     printErr: captureOutput,

@@ -1,6 +1,13 @@
 import { PatchConfig, PatcherMode, PresetOverride } from '../types';
 import { loadClownAssembler, getCapturedOutput, clearCapturedOutput } from './wasmLoader';
 
+// Helper to get asset URL with correct base path for both local dev and GitHub Pages
+const getAssetUrl = (path: string) => {
+  const base = import.meta.env.BASE_URL || '/';
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+  return `${normalizedBase}${path}`;
+};
+
 export interface PatchResult {
   blob: Blob;
   filename: string;
@@ -101,7 +108,7 @@ export const patchRom = async (
 
     // Helper: fetch a script file from /wasm/scripts and write to /scripts
     const fetchAndWrite = async (relPath: string) => {
-      const url = `/wasm/scripts/${relPath}`;
+      const url = getAssetUrl(`wasm/scripts/${relPath}`);
       try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Fetch ${url} failed: ${res.status}`);
@@ -123,7 +130,7 @@ export const patchRom = async (
     // First, try to load a manifest list.json with an array of paths
     let scriptFiles: string[] = [];
     try {
-      const manifestRes = await fetch('/wasm/scripts/list.json');
+      const manifestRes = await fetch(getAssetUrl('wasm/scripts/list.json'));
       if (manifestRes.ok) {
         const manifest = await manifestRes.json();
         // Handle both string entries and object entries with { path, displayName }
@@ -135,7 +142,7 @@ export const patchRom = async (
 
     // Always fetch the main patch.asm first (from /wasm/), apply config, and write to root
     try {
-      const patchRes = await fetch('/wasm/patch.asm');
+      const patchRes = await fetch(getAssetUrl('wasm/patch.asm'));
       if (patchRes.ok) {
         const patchText = await patchRes.text();
         const modifiedAsm = applyConfigToPatchAsm(patchText, config);
@@ -144,7 +151,7 @@ export const patchRom = async (
         console.log('[patcher] Applied config to patch.asm:', config);
       }
     } catch (e) {
-      console.warn('Could not fetch /wasm/patch.asm:', e);
+      console.warn('Could not fetch patch.asm:', e);
     }
 
     // If no manifest, at minimum fetch patch.asm from scripts folder and try to resolve includes
