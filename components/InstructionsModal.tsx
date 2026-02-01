@@ -134,89 +134,95 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose, variant 
         </div>
       )}
 
-      <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 shadow-2xl max-w-md w-full relative animate-fade-in shadow-black/50">
+      <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-2xl max-w-3xl w-full relative animate-fade-in shadow-black/50">
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors"
+          className="absolute top-3 right-3 text-slate-500 hover:text-white transition-colors z-10"
           aria-label="Close instructions"
         >
           <Icon name="x" className="w-5 h-5" />
         </button>
         
-        <div className="flex items-center mb-5 text-blue-400 font-bold tracking-wide">
+        <div className="flex items-center mb-4 text-blue-400 font-bold tracking-wide">
           <Icon name="info" className="w-5 h-5 mr-2.5" />
           <h2 className="text-sm uppercase">{content.heading}</h2>
         </div>
 
-        {/* Video Tutorial */}
-        {videoUrl && !videoError && (
-          <div 
-            className="relative mb-5 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer group"
-            onClick={openExpanded}
-          >
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              loop
-              muted
-              playsInline
-              className="w-full h-auto"
-              onError={() => setVideoError(true)}
-            />
-            {/* Play overlay when paused */}
-            {!isPlaying && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/50 transition-colors">
-                <div className="p-3 rounded-full bg-white/20 backdrop-blur-sm">
-                  <Icon name="play" className="w-8 h-8 text-white" />
+        <div className="flex gap-5">
+          {/* Left side - Video */}
+          <div className="flex-shrink-0 w-72">
+            {/* Video Tutorial */}
+            {videoUrl && !videoError && (
+              <div 
+                className="relative rounded-lg overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer group"
+                onClick={openExpanded}
+              >
+                <video
+                  ref={videoRef}
+                  src={videoUrl}
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-auto"
+                  onError={() => setVideoError(true)}
+                />
+                {/* Play overlay when paused */}
+                {!isPlaying && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/50 transition-colors">
+                    <div className="p-2.5 rounded-full bg-white/20 backdrop-blur-sm">
+                      <Icon name="play" className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                )}
+                {/* Expand hint */}
+                <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 bg-slate-900/80 rounded text-[10px] text-slate-400 border border-slate-700">
+                  Click to expand
                 </div>
               </div>
             )}
-            {/* Expand hint */}
-            <div className="absolute bottom-2 left-2 px-2 py-1 bg-slate-900/80 rounded-md text-xs text-slate-400 border border-slate-700">
-              Click to expand
-            </div>
-          </div>
-        )}
 
-        {/* Video placeholder when not yet recorded */}
-        {videoUrl && videoError && (
-          <div className="mb-5 rounded-lg border border-slate-700 bg-slate-950 p-8 flex flex-col items-center justify-center text-slate-500">
-            <Icon name="play" className="w-8 h-8 mb-2 opacity-50" />
-            <span className="text-xs">Tutorial video coming soon</span>
-          </div>
-        )}
-        
-        <ol className="list-decimal list-inside space-y-4 text-sm text-slate-300 ml-1">
-          {content.steps.map((step, index) => (
-            <li key={step.title} className="pl-2">
-              <span className="text-slate-100 font-semibold">{step.title}</span>
-              <div className="text-xs text-slate-500 mt-0.5 ml-[-1.5em] pl-[1.5em] leading-relaxed">
-                {step.description}
+            {/* Video placeholder when not yet recorded */}
+            {videoUrl && videoError && (
+              <div className="rounded-lg border border-slate-700 bg-slate-950 p-6 flex flex-col items-center justify-center text-slate-500 h-40">
+                <Icon name="play" className="w-6 h-6 mb-2 opacity-50" />
+                <span className="text-xs">Tutorial video coming soon</span>
               </div>
-            </li>
-          ))}
-        </ol>
-
-        {/* Alternative method callout */}
-        {content.altMethod && (
-          <div className="mt-5 p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-            <div className="flex items-start gap-2">
-              <Icon name="info" className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="text-xs font-semibold text-amber-500">{content.altMethod.title}</span>
-                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{content.altMethod.description}</p>
-              </div>
-            </div>
+            )}
           </div>
-        )}
 
-        <div className="mt-8">
+          {/* Right side - Steps */}
+          <div className="flex-1 min-w-0">
+            <ol className="list-decimal list-inside space-y-2.5 text-sm text-slate-300">
+              {content.steps.map((step, index) => (
+                <li key={step.title} className="pl-1">
+                  <span className="text-slate-100 font-semibold text-xs">{step.title}</span>
+                  <div className="text-[11px] text-slate-500 mt-0.5 ml-[-1.25em] pl-[1.25em] leading-relaxed">
+                    {step.description}
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            {/* Alternative method callout */}
+            {content.altMethod && (
+              <div className="mt-3 p-2.5 rounded-lg bg-slate-800/50 border border-slate-700">
+                <div className="flex items-start gap-2">
+                  <Icon name="info" className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="text-[11px] font-semibold text-amber-500">{content.altMethod.title}</span>
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">{content.altMethod.description}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button 
-                onClick={onClose}
-                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold py-3 rounded-lg transition-all border border-slate-700 hover:border-slate-600 uppercase tracking-wider"
+              onClick={onClose}
+              className="mt-4 w-full bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold py-2.5 rounded-lg transition-all border border-slate-700 hover:border-slate-600 uppercase tracking-wider"
             >
-                Close
+              Close
             </button>
+          </div>
         </div>
       </div>
     </div>
