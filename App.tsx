@@ -254,7 +254,7 @@ const App: React.FC = () => {
       )}
 
       {/* Debug Panel - Only shown in dev mode on ROM Patcher tab */}
-      {isDev && activeTab === 'ROM Patcher' && (
+      {activeTab === 'ROM Patcher' && (
         <>
           <button
             onClick={() => setShowDebugPanel(true)}
