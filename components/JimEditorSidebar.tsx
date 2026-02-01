@@ -283,8 +283,8 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         data = parseJimFile(buffer);
       }
       
-      const palIdx = selectedPalette === -1 ? -1 : selectedPalette;
-      const blob = await createAsepriteBlob(data, 'map', palIdx, true);
+      // Always use -1 (native mode) to export all 64 colors from all 4 palettes
+      const blob = await createAsepriteBlob(data, 'map', -1, true);
       const filename = file.label.replace(/\.jim$/i, '.aseprite');
       downloadBlob(blob, filename);
     } catch (err) {
