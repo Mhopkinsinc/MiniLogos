@@ -1,11 +1,16 @@
 // Store all captured output from the assembler
 let capturedOutput: string[] = [];
 
+// Build timestamp for cache busting - injected at build time
+const BUILD_VERSION = import.meta.env.VITE_BUILD_VERSION || Date.now().toString();
+
 // Helper to get asset URL with correct base path for both local dev and GitHub Pages
-const getAssetUrl = (path: string) => {
+// Includes cache-busting query parameter for static assets
+const getAssetUrl = (path: string, bustCache = true) => {
   const base = import.meta.env.BASE_URL || '/';
   const normalizedBase = base.endsWith('/') ? base : `${base}/`;
-  return `${normalizedBase}${path}`;
+  const url = `${normalizedBase}${path}`;
+  return bustCache ? `${url}?v=${BUILD_VERSION}` : url;
 };
 
 /**
