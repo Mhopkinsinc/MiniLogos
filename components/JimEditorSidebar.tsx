@@ -181,7 +181,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       if (targetPresetForImport) {
         try {
           const jimBytes = createJimFile(data);
-          const relativePath = targetPresetForImport.path.replace(/^wasm\/scripts\//, '');
+          const relativePath = targetPresetForImport.path.replace(/^.*?wasm\/scripts\//, '');
           onPresetOverride(relativePath, jimBytes, filename);
         } catch (err) {
           console.error('Failed to create JIM override:', err);
@@ -212,7 +212,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
 
     try {
       // Check if there's an override for this preset
-      const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+      const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
       const override = presetOverrides.get(relativePath);
 
       if (override) {
@@ -245,7 +245,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     setOpenExportDropdown(null);
     
     // Check if there's an override for this preset
-    const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+    const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
     const override = presetOverrides.get(relativePath);
     
     if (override) {
@@ -275,7 +275,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     setIsProcessing(true);
     
     try {
-      const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+      const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
       const override = presetOverrides.get(relativePath);
       
       let data: JimData;
@@ -307,7 +307,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     setIsProcessing(true);
     
     try {
-      const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+      const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
       const override = presetOverrides.get(relativePath);
       
       let data: JimData;
@@ -382,7 +382,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
           );
           
           const renderFileGroup = (files: typeof presetJimFiles) => files.map((file) => {
-            const relativePath = file.path.replace(/^wasm\/scripts\//, '');
+            const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
             const override = presetOverrides.get(relativePath);
             const isSelected = jimFilename === file.label || (override && jimFilename === override.sourceName);
             const isDropdownOpen = openExportDropdown === file.path;
