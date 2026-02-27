@@ -40,8 +40,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, sideb
           </div>
         </div>
 
-        {/* Utility Actions - Kept empty container to balance the flex layout */}
+        {/* Build Version */}
         <div className="flex items-center space-x-2 w-80 justify-end">
+          <span className="text-xs text-slate-500">
+            Build: {new Date(parseInt(import.meta.env.VITE_BUILD_VERSION || '0')).toLocaleString()}
+          </span>
         </div>
       </header>
 
