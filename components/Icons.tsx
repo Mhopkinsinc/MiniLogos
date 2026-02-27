@@ -24,7 +24,8 @@ export const Icon: React.FC<{ name: string; className?: string }> = ({ name, cla
     minus: <path d="M5 12h14" />,
     chevronDown: <path d="m6 9 6 6 6-6" />,
     play: <polygon points="5 3 19 12 5 21 5 3" />,
-    pause: <><rect width="4" height="16" x="6" y="4" /><rect width="4" height="16" x="14" y="4" /></>
+    pause: <><rect width="4" height="16" x="6" y="4" /><rect width="4" height="16" x="14" y="4" /></>,
+    flag: <><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" x2="4" y1="22" y2="15" /></>
   };
 
   return (

@@ -372,8 +372,16 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         <p className="text-xs text-slate-500 mb-4">
           Select a preset to view. Use the actions to import custom graphics or export.
         </p>
-        <div className="space-y-3">
-          {presetJimFiles.map((file) => {
+        
+        {/* Group presets by category */}
+        {(() => {
+          const bannerFiles = presetJimFiles.filter(f => f.label.toLowerCase().includes('banner'));
+          const miniLogoFiles = presetJimFiles.filter(f => f.label.toLowerCase().includes('minilogo'));
+          const otherFiles = presetJimFiles.filter(f => 
+            !f.label.toLowerCase().includes('banner') && !f.label.toLowerCase().includes('minilogo')
+          );
+          
+          const renderFileGroup = (files: typeof presetJimFiles) => files.map((file) => {
             const relativePath = file.path.replace(/^wasm\/scripts\//, '');
             const override = presetOverrides.get(relativePath);
             const isSelected = jimFilename === file.label || (override && jimFilename === override.sourceName);
@@ -480,14 +488,60 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
                 </div>
               </div>
             );
-          })}
-          {isLoadingPresets && (
-            <p className="text-xs text-slate-500">Loading presets...</p>
-          )}
-          {!isLoadingPresets && presetJimFiles.length === 0 && (
-            <p className="text-xs text-slate-600">No preset .jim files found.</p>
-          )}
-        </div>
+          });
+          
+          return (
+            <div className="space-y-4">
+              {/* Banners Group */}
+              {bannerFiles.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <Icon name="flag" className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Banners</span>
+                    <div className="flex-1 h-px bg-amber-500/30"></div>
+                  </div>
+                  <div className="space-y-3">
+                    {renderFileGroup(bannerFiles)}
+                  </div>
+                </div>
+              )}
+              
+              {/* Mini Logos Group */}
+              {miniLogoFiles.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <Icon name="image" className="w-3.5 h-3.5 text-sky-400" />
+                    <span className="text-xs font-semibold text-sky-400 uppercase tracking-wider">Mini Logos</span>
+                    <div className="flex-1 h-px bg-sky-500/30"></div>
+                  </div>
+                  <div className="space-y-3">
+                    {renderFileGroup(miniLogoFiles)}
+                  </div>
+                </div>
+              )}
+              
+              {/* Other Files (if any) */}
+              {otherFiles.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <Icon name="file" className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Other</span>
+                    <div className="flex-1 h-px bg-slate-500/30"></div>
+                  </div>
+                  <div className="space-y-3">
+                    {renderFileGroup(otherFiles)}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        {isLoadingPresets && (
+          <p className="text-xs text-slate-500">Loading presets...</p>
+        )}
+        {!isLoadingPresets && presetJimFiles.length === 0 && (
+          <p className="text-xs text-slate-600">No preset .jim files found.</p>
+        )}
       </div>
 
       {/* Currently loaded indicator */}
