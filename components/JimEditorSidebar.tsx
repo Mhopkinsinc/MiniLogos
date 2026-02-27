@@ -170,7 +170,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     try {
       const buffer = await file.arrayBuffer();
       const aseData = await parseAseprite(buffer);
-      const data = convertAsepriteToJim(aseData, false); // false = enable deduplication
+      const data = convertAsepriteToJim(aseData, true); // true = no deduplication (unique tiles)
       const filename = file.name.replace(/\.(ase|aseprite)$/i, '.jim');
       
       // Load the data into the editor
