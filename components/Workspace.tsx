@@ -83,7 +83,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
   // Removed the !fileLoaded blocking check to show the workspace immediately.
 
   return (
-    <div className="w-full h-full p-8 overflow-y-auto relative">
+    <div className="w-full h-full p-8 overflow-y-auto relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-end justify-between mb-8">
             <div>
