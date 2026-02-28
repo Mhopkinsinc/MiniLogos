@@ -68,6 +68,9 @@ const ActionButton: React.FC<{
   </button>
 );
 
+// Style variants available for presets
+type StyleVariant = 'default' | 'drezz';
+
 const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   jimData,
   jimFilename,
@@ -87,11 +90,21 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [currentFileSource, setCurrentFileSource] = useState<'preset' | 'aseprite' | 'jim' | null>(null);
   
+  // State for style variant selection (default vs DREZZ)
+  const [styleVariant, setStyleVariant] = useState<StyleVariant>('default');
+  
   // State for export dropdown
   const [openExportDropdown, setOpenExportDropdown] = useState<string | null>(null);
   
   // State for targeted import (when importing for a specific preset)
   const [targetPresetForImport, setTargetPresetForImport] = useState<{ label: string; displayName: string; path: string } | null>(null);
+
+  // Helper to get the path for current style variant
+  const getVariantPath = (basePath: string): string => {
+    if (styleVariant === 'default') return basePath;
+    // Convert "filename.jim" to "filename_drezz.jim"
+    return basePath.replace(/\.jim$/i, '_drezz.jim');
+  };
 
   useEffect(() => {
     let active = true;
@@ -147,6 +160,9 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     };
   }, []);
 
+  // Track currently selected preset for reloading on style variant change
+  const [currentPreset, setCurrentPreset] = useState<{ label: string; displayName: string; path: string } | null>(null);
+
   // Auto-load "Banners (28 Teams)" when presets are loaded and no file is selected
   useEffect(() => {
     if (!isLoadingPresets && presetJimFiles.length > 0 && !jimData && !hasAutoLoadedRef.current) {
@@ -155,10 +171,18 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       const bannersPreset = presetJimFiles.find(f => f.path.includes('banners_28_teams.jim'));
       const presetToLoad = bannersPreset || presetJimFiles[0];
       if (presetToLoad) {
+        setCurrentPreset(presetToLoad);
         handlePresetJimLoad(presetToLoad);
       }
     }
   }, [isLoadingPresets, presetJimFiles, jimData]);
+
+  // Reload current preset when style variant changes
+  useEffect(() => {
+    if (currentPreset && currentFileSource === 'preset') {
+      handlePresetJimLoad(currentPreset);
+    }
+  }, [styleVariant]);
 
   // --- File Load Handlers ---
   const handleAsepriteFileLoad = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,14 +230,18 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     aseInputRef.current?.click();
   };
 
-  const handlePresetJimLoad = async (file: { label: string; path: string }) => {
+  const handlePresetJimLoad = async (file: { label: string; displayName: string; path: string }) => {
     setIsProcessing(true);
     setError(null);
+    setCurrentPreset(file); // Track current preset for variant switching
 
     try {
-      // Check if there's an override for this preset
-      const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
-      const override = presetOverrides.get(relativePath);
+      // Get the path for the current style variant
+      const variantPath = getVariantPath(file.path);
+      const variantRelativePath = variantPath.replace(/^.*?wasm\/scripts\//, '');
+      
+      // Check if there's an override for this preset (using variant path)
+      const override = presetOverrides.get(variantRelativePath);
 
       if (override) {
         // Load the override data instead of the original preset
@@ -221,15 +249,21 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         onJimLoad(data, override.sourceName || file.label);
         setCurrentFileSource('aseprite');
       } else {
-        // Load the original preset
-        const response = await fetch(file.path);
+        // Load the preset with the appropriate variant
+        const response = await fetch(variantPath);
         if (!response.ok) {
+          // If DREZZ variant not found, show helpful error
+          if (styleVariant === 'drezz') {
+            throw new Error(`DREZZ variant not found for ${file.label}. Expected file: ${variantRelativePath}`);
+          }
           throw new Error(`Failed to load ${file.label}`);
         }
 
         const buffer = await response.arrayBuffer();
         const data = parseJimFile(buffer);
-        onJimLoad(data, file.label);
+        // Append style indicator to label if using DREZZ
+        const displayLabel = styleVariant === 'drezz' ? `${file.label} (DREZZ)` : file.label;
+        onJimLoad(data, displayLabel);
         setCurrentFileSource('preset');
       }
     } catch (err) {
@@ -244,23 +278,26 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   const handleExportJimForPreset = async (file: { label: string; path: string }) => {
     setOpenExportDropdown(null);
     
-    // Check if there's an override for this preset
-    const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
-    const override = presetOverrides.get(relativePath);
+    // Get the path for the current style variant
+    const variantPath = getVariantPath(file.path);
+    const variantRelativePath = variantPath.replace(/^.*?wasm\/scripts\//, '');
+    const override = presetOverrides.get(variantRelativePath);
     
     if (override) {
       // Export the override data
       const blob = new Blob([override.jimData], { type: 'application/octet-stream' });
-      downloadBlob(blob, file.label);
+      const exportFilename = styleVariant === 'drezz' ? file.label.replace(/\.jim$/i, '_drezz.jim') : file.label;
+      downloadBlob(blob, exportFilename);
     } else {
       // Load the preset and export it
       setIsProcessing(true);
       try {
-        const response = await fetch(file.path);
+        const response = await fetch(variantPath);
         if (!response.ok) throw new Error(`Failed to load ${file.label}`);
         const buffer = await response.arrayBuffer();
         const blob = new Blob([buffer], { type: 'application/octet-stream' });
-        downloadBlob(blob, file.label);
+        const exportFilename = styleVariant === 'drezz' ? file.label.replace(/\.jim$/i, '_drezz.jim') : file.label;
+        downloadBlob(blob, exportFilename);
       } catch (err) {
         console.error('Failed to export JIM:', err);
         setError(err instanceof Error ? err.message : 'Failed to export JIM file');
@@ -275,16 +312,18 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     setIsProcessing(true);
     
     try {
-      const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
-      const override = presetOverrides.get(relativePath);
+      // Get the path for the current style variant
+      const variantPath = getVariantPath(file.path);
+      const variantRelativePath = variantPath.replace(/^.*?wasm\/scripts\//, '');
+      const override = presetOverrides.get(variantRelativePath);
       
       let data: JimData;
       if (override) {
         // Parse the override data
         data = parseJimFile(override.jimData.buffer);
       } else {
-        // Load and parse the preset
-        const response = await fetch(file.path);
+        // Load and parse the preset with variant
+        const response = await fetch(variantPath);
         if (!response.ok) throw new Error(`Failed to load ${file.label}`);
         const buffer = await response.arrayBuffer();
         data = parseJimFile(buffer);
@@ -292,8 +331,9 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       
       // Always use -1 (native mode) to export all 64 colors from all 4 palettes
       const blob = await createAsepriteBlob(data, 'map', -1, true);
-      const filename = file.label.replace(/\.jim$/i, '.aseprite');
-      downloadBlob(blob, filename);
+      const baseFilename = file.label.replace(/\.jim$/i, '');
+      const exportFilename = styleVariant === 'drezz' ? `${baseFilename}_drezz.aseprite` : `${baseFilename}.aseprite`;
+      downloadBlob(blob, exportFilename);
     } catch (err) {
       console.error('Failed to export Aseprite:', err);
       setError(err instanceof Error ? err.message : 'Failed to export Aseprite file');
@@ -307,14 +347,16 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     setIsProcessing(true);
     
     try {
-      const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
-      const override = presetOverrides.get(relativePath);
+      // Get the path for the current style variant
+      const variantPath = getVariantPath(file.path);
+      const variantRelativePath = variantPath.replace(/^.*?wasm\/scripts\//, '');
+      const override = presetOverrides.get(variantRelativePath);
       
       let data: JimData;
       if (override) {
         data = parseJimFile(override.jimData.buffer);
       } else {
-        const response = await fetch(file.path);
+        const response = await fetch(variantPath);
         if (!response.ok) throw new Error(`Failed to load ${file.label}`);
         const buffer = await response.arrayBuffer();
         data = parseJimFile(buffer);
@@ -328,8 +370,9 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
       );
       
       if (blob) {
-        const filename = file.label.replace(/\.jim$/i, '.png');
-        downloadBlob(blob, filename);
+        const baseFilename = file.label.replace(/\.jim$/i, '');
+        const exportFilename = styleVariant === 'drezz' ? `${baseFilename}_drezz.png` : `${baseFilename}.png`;
+        downloadBlob(blob, exportFilename);
       }
     } catch (err) {
       console.error('Failed to export PNG:', err);
@@ -372,6 +415,50 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         <p className="text-xs text-slate-500 mb-4">
           Select a preset to view. Use the actions to import custom graphics or export.
         </p>
+        
+        {/* Style Variant Toggle */}
+        <div className="mb-4 p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-slate-300 flex items-center gap-2">
+              <Icon name="palette" className="w-3.5 h-3.5 text-violet-400" />
+              Style Variant
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setStyleVariant('default')}
+              className={`
+                flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all
+                ${styleVariant === 'default'
+                  ? 'bg-emerald-600 text-white shadow-md'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-600'}
+              `}
+            >
+              Default
+            </button>
+            <button
+              onClick={() => setStyleVariant('drezz')}
+              className={`
+                flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all
+                ${styleVariant === 'drezz'
+                  ? 'bg-violet-600 text-white shadow-md'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-600'}
+              `}
+            >
+              DREZZ
+            </button>
+          </div>
+          {styleVariant === 'default' && (
+            <p className="text-[10px] text-emerald-400 mt-2">
+              Using '92 style graphics by McMarkis
+            </p>
+          )}
+          {styleVariant === 'drezz' && (
+            <p className="text-[10px] text-violet-400 mt-2">
+              Using '92 style graphics created by DREZZ
+            </p>
+          )}
+        </div>
         
         {/* Group presets by category */}
         {(() => {
