@@ -13,6 +13,7 @@ import {
 } from '../services';
 import type { ViewMode } from './JimEditor';
 import type { PresetOverrides, StyleVariant } from '../services/patcherService';
+import { PatcherMode } from '../types';
 
 // Helper to get asset URL with correct base path for both local dev and GitHub Pages
 const getAssetUrl = (path: string) => {
@@ -36,6 +37,7 @@ interface JimEditorSidebarProps {
   use32Teams: boolean;
   styleVariant: StyleVariant;
   onStyleVariantChange: (variant: StyleVariant) => void;
+  patchMode: PatcherMode;
 }
 
 // Reusable UI Components (matching SidebarControls style)
@@ -85,7 +87,8 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   onClearPresetOverride,
   use32Teams,
   styleVariant,
-  onStyleVariantChange
+  onStyleVariantChange,
+  patchMode
 }) => {
   const aseInputRef = useRef<HTMLInputElement>(null);
   const hasAutoLoadedRef = useRef(false);
@@ -548,7 +551,10 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
             !f.label.toLowerCase().includes('banner') && !f.label.toLowerCase().includes('minilogo')
           );
           
-          const renderFileGroup = (files: typeof presetJimFiles) => files.map((file) => {
+          // Check if banners should be disabled (Mini Logos Only mode)
+          const isBannersDisabled = patchMode === PatcherMode.MiniLogosOnly;
+          
+          const renderFileGroup = (files: typeof presetJimFiles, isBannerGroup: boolean = false) => files.map((file) => {
             const relativePath = file.path.replace(/^.*?wasm\/scripts\//, '');
             const override = presetOverrides.get(relativePath);
             const isSelected = jimFilename === file.label || (override && jimFilename === override.sourceName);
@@ -559,12 +565,18 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
             const is28TeamPreset = file.label.toLowerCase().includes('28_teams');
             const isDisabledByTeamConfig = use32Teams ? is28TeamPreset : is32TeamPreset;
             
+            // Disable banner presets when in Mini Logos Only mode
+            const isDisabledByPatchMode = isBannerGroup && isBannersDisabled;
+            
+            const isDisabled = isDisabledByTeamConfig || isDisabledByPatchMode;
+            const disabledReason = isDisabledByPatchMode ? 'Mini Logos Only' : (use32Teams ? '28 Teams' : '30/32 Teams');
+            
             return (
               <div 
                 key={file.path} 
                 className={`
                   relative rounded-lg border transition-all
-                  ${isDisabledByTeamConfig 
+                  ${isDisabled 
                     ? 'opacity-40 bg-slate-900/50 border-slate-800' 
                     : isSelected 
                       ? 'bg-blue-600/20 border-blue-500/50' 
@@ -574,21 +586,21 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
                 {/* Main preset button - click to view */}
                 <button
                   onClick={() => handlePresetJimLoad(file)}
-                  disabled={isProcessing || isDisabledByTeamConfig}
+                  disabled={isProcessing || isDisabled}
                   className={`
                     w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-t-lg
-                    ${isDisabledByTeamConfig ? 'cursor-not-allowed text-slate-500' : isSelected ? 'text-white' : 'text-slate-300 hover:text-white'}
-                    ${isProcessing && !isDisabledByTeamConfig ? 'cursor-not-allowed opacity-50' : ''}
+                    ${isDisabled ? 'cursor-not-allowed text-slate-500' : isSelected ? 'text-white' : 'text-slate-300 hover:text-white'}
+                    ${isProcessing && !isDisabled ? 'cursor-not-allowed opacity-50' : ''}
                   `}
                 >
-                  <Icon name="file" className={`w-4 h-4 ${isDisabledByTeamConfig ? 'text-slate-600' : override ? 'text-amber-400' : 'text-emerald-400'}`} />
+                  <Icon name="file" className={`w-4 h-4 ${isDisabled ? 'text-slate-600' : override ? 'text-amber-400' : 'text-emerald-400'}`} />
                   <span className="flex-1 text-left truncate">{file.displayName}</span>
-                  {isDisabledByTeamConfig && (
+                  {isDisabled && (
                     <span className="text-[10px] px-2 py-0.5 rounded bg-slate-700/50 text-slate-500 border border-slate-600/30">
-                      {use32Teams ? '28 Teams' : '30/32 Teams'}
+                      {disabledReason}
                     </span>
                   )}
-                  {!isDisabledByTeamConfig && override && (
+                  {!isDisabled && override && (
                     <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
                       Modified
                     </span>
@@ -596,7 +608,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
                 </button>
 
                 {/* Override indicator - only show when not disabled */}
-                {!isDisabledByTeamConfig && override && (
+                {!isDisabled && override && (
                   <div className="px-4 pb-2 flex items-center justify-between">
                     <span className="text-[10px] text-amber-400 truncate" title={override.sourceName}>
                       ⚡ Override: {override.sourceName}
@@ -610,8 +622,8 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
                   </div>
                 )}
 
-                {/* Action buttons row - hide when disabled by team config */}
-                {!isDisabledByTeamConfig && (
+                {/* Action buttons row - hide when disabled */}
+                {!isDisabled && (
                 <div className="flex items-center gap-2 px-3 pb-3">
                   {/* Import button - only enabled when Custom style is selected */}
                   <button
@@ -682,12 +694,17 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
               {bannerFiles.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2 px-1">
-                    <Icon name="flag" className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Banners</span>
-                    <div className="flex-1 h-px bg-amber-500/30"></div>
+                    <Icon name="flag" className={`w-3.5 h-3.5 ${isBannersDisabled ? 'text-slate-500' : 'text-amber-400'}`} />
+                    <span className={`text-xs font-semibold uppercase tracking-wider ${isBannersDisabled ? 'text-slate-500' : 'text-amber-400'}`}>Banners</span>
+                    {isBannersDisabled && (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-700/50 text-slate-500 border border-slate-600/30">
+                        Mini Logos Only
+                      </span>
+                    )}
+                    <div className={`flex-1 h-px ${isBannersDisabled ? 'bg-slate-600/30' : 'bg-amber-500/30'}`}></div>
                   </div>
                   <div className="space-y-3">
-                    {renderFileGroup(bannerFiles)}
+                    {renderFileGroup(bannerFiles, true)}
                   </div>
                 </div>
               )}

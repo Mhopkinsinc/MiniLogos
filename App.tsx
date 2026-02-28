@@ -217,6 +217,7 @@ const App: React.FC = () => {
           use32Teams={config.options.use32Teams}
           styleVariant={styleVariant}
           onStyleVariantChange={setStyleVariant}
+          patchMode={config.mode}
         />
       );
     }
