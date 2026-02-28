@@ -33,6 +33,7 @@ interface JimEditorSidebarProps {
   presetOverrides: PresetOverrides;
   onPresetOverride: (presetPath: string, jimData: Uint8Array, sourceName: string) => void;
   onClearPresetOverride: (presetPath: string) => void;
+  use32Teams: boolean;
 }
 
 // Reusable UI Components (matching SidebarControls style)
@@ -82,7 +83,8 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   setError,
   presetOverrides,
   onPresetOverride,
-  onClearPresetOverride
+  onClearPresetOverride,
+  use32Teams
 }) => {
   const aseInputRef = useRef<HTMLInputElement>(null);
   const hasAutoLoadedRef = useRef(false);
@@ -474,37 +476,49 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
             const isSelected = jimFilename === file.label || (override && jimFilename === override.sourceName);
             const isDropdownOpen = openExportDropdown === file.path;
             
+            // Determine if this preset should be disabled based on team configuration
+            const is32TeamPreset = file.label.toLowerCase().includes('32_teams');
+            const is28TeamPreset = file.label.toLowerCase().includes('28_teams');
+            const isDisabledByTeamConfig = use32Teams ? is28TeamPreset : is32TeamPreset;
+            
             return (
               <div 
                 key={file.path} 
                 className={`
                   relative rounded-lg border transition-all
-                  ${isSelected 
-                    ? 'bg-blue-600/20 border-blue-500/50' 
-                    : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}
+                  ${isDisabledByTeamConfig 
+                    ? 'opacity-40 bg-slate-900/50 border-slate-800' 
+                    : isSelected 
+                      ? 'bg-blue-600/20 border-blue-500/50' 
+                      : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}
                 `}
               >
                 {/* Main preset button - click to view */}
                 <button
                   onClick={() => handlePresetJimLoad(file)}
-                  disabled={isProcessing}
+                  disabled={isProcessing || isDisabledByTeamConfig}
                   className={`
                     w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-t-lg
-                    ${isSelected ? 'text-white' : 'text-slate-300 hover:text-white'}
-                    ${isProcessing ? 'cursor-not-allowed opacity-50' : ''}
+                    ${isDisabledByTeamConfig ? 'cursor-not-allowed text-slate-500' : isSelected ? 'text-white' : 'text-slate-300 hover:text-white'}
+                    ${isProcessing && !isDisabledByTeamConfig ? 'cursor-not-allowed opacity-50' : ''}
                   `}
                 >
-                  <Icon name="file" className={`w-4 h-4 ${override ? 'text-amber-400' : 'text-emerald-400'}`} />
+                  <Icon name="file" className={`w-4 h-4 ${isDisabledByTeamConfig ? 'text-slate-600' : override ? 'text-amber-400' : 'text-emerald-400'}`} />
                   <span className="flex-1 text-left truncate">{file.displayName}</span>
-                  {override && (
+                  {isDisabledByTeamConfig && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-700/50 text-slate-500 border border-slate-600/30">
+                      {use32Teams ? '28 Teams' : '30/32 Teams'}
+                    </span>
+                  )}
+                  {!isDisabledByTeamConfig && override && (
                     <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
                       Modified
                     </span>
                   )}
                 </button>
 
-                {/* Override indicator */}
-                {override && (
+                {/* Override indicator - only show when not disabled */}
+                {!isDisabledByTeamConfig && override && (
                   <div className="px-4 pb-2 flex items-center justify-between">
                     <span className="text-[10px] text-amber-400 truncate" title={override.sourceName}>
                       ⚡ Override: {override.sourceName}
@@ -518,7 +532,8 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
                   </div>
                 )}
 
-                {/* Action buttons row */}
+                {/* Action buttons row - hide when disabled by team config */}
+                {!isDisabledByTeamConfig && (
                 <div className="flex items-center gap-2 px-3 pb-3">
                   {/* Import button */}
                   <button
@@ -573,6 +588,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
                     )}
                   </div>
                 </div>
+                )}
               </div>
             );
           });

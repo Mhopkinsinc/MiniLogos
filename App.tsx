@@ -211,6 +211,7 @@ const App: React.FC = () => {
           presetOverrides={presetOverrides}
           onPresetOverride={handlePresetOverride}
           onClearPresetOverride={handleClearPresetOverride}
+          use32Teams={config.options.use32Teams}
         />
       );
     }
