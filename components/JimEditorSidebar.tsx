@@ -70,7 +70,7 @@ const ActionButton: React.FC<{
 );
 
 // Style variants available for presets
-type StyleVariant = 'default' | 'drezz';
+type StyleVariant = 'default' | 'drezz' | 'custom';
 
 const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   jimData,
@@ -103,7 +103,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
 
   // Helper to get the path for current style variant
   const getVariantPath = (basePath: string): string => {
-    if (styleVariant === 'default') return basePath;
+    if (styleVariant === 'default' || styleVariant === 'custom') return basePath;
     // Convert "filename.jim" to "filename_drezz.jim"
     return basePath.replace(/\.jim$/i, '_drezz.jim');
   };
@@ -179,9 +179,9 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     }
   }, [isLoadingPresets, presetJimFiles, jimData]);
 
-  // Reload current preset when style variant changes
+  // Reload current preset when style variant changes (skip for 'custom' which uses imports)
   useEffect(() => {
-    if (currentPreset && currentFileSource === 'preset') {
+    if (currentPreset && currentFileSource === 'preset' && styleVariant !== 'custom') {
       handlePresetJimLoad(currentPreset);
     }
   }, [styleVariant]);
@@ -449,6 +449,17 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
             >
               DREZZ
             </button>
+            <button
+              onClick={() => setStyleVariant('custom')}
+              className={`
+                flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all
+                ${styleVariant === 'custom'
+                  ? 'bg-amber-600 text-white shadow-md'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-600'}
+              `}
+            >
+              Custom
+            </button>
           </div>
           {styleVariant === 'default' && (
             <p className="text-[10px] text-emerald-400 mt-2">
@@ -458,6 +469,11 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
           {styleVariant === 'drezz' && (
             <p className="text-[10px] text-violet-400 mt-2">
               Using '92 style graphics created by DREZZ
+            </p>
+          )}
+          {styleVariant === 'custom' && (
+            <p className="text-[10px] text-amber-400 mt-2">
+              Import your own custom graphics
             </p>
           )}
         </div>
@@ -535,11 +551,16 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
                 {/* Action buttons row - hide when disabled by team config */}
                 {!isDisabledByTeamConfig && (
                 <div className="flex items-center gap-2 px-3 pb-3">
-                  {/* Import button */}
+                  {/* Import button - only enabled when Custom style is selected */}
                   <button
                     onClick={() => handleImportForPreset(file)}
-                    disabled={isProcessing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/30 hover:text-indigo-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isProcessing || styleVariant !== 'custom'}
+                    title={styleVariant !== 'custom' ? 'Select "Custom" style to enable import' : 'Import custom graphics'}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-all disabled:cursor-not-allowed ${
+                      styleVariant === 'custom'
+                        ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/30 hover:text-indigo-300 disabled:opacity-50'
+                        : 'bg-slate-800/50 border border-slate-700 text-slate-500 opacity-50'
+                    }`}
                   >
                     <Icon name="upload" className="w-3.5 h-3.5" />
                     Import
