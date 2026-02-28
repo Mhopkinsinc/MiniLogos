@@ -89,6 +89,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
 }) => {
   const aseInputRef = useRef<HTMLInputElement>(null);
   const hasAutoLoadedRef = useRef(false);
+  const prevStyleVariantRef = useRef<StyleVariant>(styleVariant);
   const [presetJimFiles, setPresetJimFiles] = useState<{ label: string; displayName: string; path: string }[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [currentFileSource, setCurrentFileSource] = useState<'preset' | 'aseprite' | 'jim' | null>(null);
@@ -191,7 +192,14 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   }, [isLoadingPresets, presetJimFiles, jimData]);
 
   // Reload current preset when style variant changes (skip for 'custom' which uses imports)
+  // Only trigger when styleVariant actually changes, not when currentPreset is first set
   useEffect(() => {
+    const prevVariant = prevStyleVariantRef.current;
+    prevStyleVariantRef.current = styleVariant;
+    
+    // Skip if styleVariant hasn't actually changed (initial mount or currentPreset change only)
+    if (prevVariant === styleVariant) return;
+    
     if (currentPreset && styleVariant !== 'custom') {
       // Inline the load logic to avoid stale closure issues
       const loadPreset = async () => {
