@@ -1,6 +1,9 @@
 import { PatchConfig, PatcherMode, PresetOverride } from '../types';
 import { loadClownAssembler, getCapturedOutput, clearCapturedOutput } from './wasmLoader';
 
+// Style variant type (matches JimEditorSidebar)
+export type StyleVariant = 'default' | 'drezz' | 'custom';
+
 // Build timestamp for cache busting - injected at build time
 const BUILD_VERSION = import.meta.env.VITE_BUILD_VERSION || Date.now().toString();
 
@@ -72,18 +75,21 @@ const applyConfigToPatchAsm = (asmContent: string, config: PatchConfig): string 
  * @param config - Patch configuration options
  * @param filename - Original filename (used for output naming)
  * @param presetOverrides - Optional map of preset files to override with custom JIM data
+ * @param styleVariant - Style variant to use ('default', 'drezz', or 'custom')
  */
 export const patchRom = async (
   fileData: ArrayBuffer, 
   config: PatchConfig, 
   filename = 'input.bin',
-  presetOverrides?: PresetOverrides
+  presetOverrides?: PresetOverrides,
+  styleVariant: StyleVariant = 'default'
 ): Promise<PatchResult> => {
   // Clear any previous output before starting
   clearCapturedOutput();
   
   console.log('Starting patch process...');
   console.log('Configuration:', config);
+  console.log('Style variant:', styleVariant);
 
   // Calculate the output filename upfront
   const outputName = `${filename.replace(/\.[^.]+$/, '')}_patched.bin`;
@@ -112,11 +118,37 @@ export const patchRom = async (
     }
 
     // Helper: fetch a script file from /wasm/scripts and write to /scripts
+    // For DREZZ style variant, .jim files are fetched from *_drezz.jim but written to original path
     const fetchAndWrite = async (relPath: string) => {
-      const url = getAssetUrl(`wasm/scripts/${relPath}`);
+      // Determine if this is a .jim file and we need to fetch a variant
+      let fetchPath = relPath;
+      if (styleVariant === 'drezz' && relPath.toLowerCase().endsWith('.jim')) {
+        // Convert "filename.jim" to "filename_drezz.jim" for fetching
+        fetchPath = relPath.replace(/\.jim$/i, '_drezz.jim');
+      }
+      
+      const url = getAssetUrl(`wasm/scripts/${fetchPath}`);
       try {
         const res = await fetch(url);
-        if (!res.ok) throw new Error(`Fetch ${url} failed: ${res.status}`);
+        if (!res.ok) {
+          // If DREZZ variant not found, fall back to default
+          if (styleVariant === 'drezz' && fetchPath !== relPath) {
+            console.warn(`DREZZ variant not found for ${relPath}, falling back to default`);
+            const fallbackUrl = getAssetUrl(`wasm/scripts/${relPath}`);
+            const fallbackRes = await fetch(fallbackUrl);
+            if (!fallbackRes.ok) throw new Error(`Fetch ${fallbackUrl} failed: ${fallbackRes.status}`);
+            const buf = await fallbackRes.arrayBuffer();
+            const parts = relPath.split('/');
+            if (parts.length > 1) {
+              const dir = '/scripts/' + parts.slice(0, -1).join('/');
+              try { FS.mkdirTree(dir); } catch {}
+            }
+            // Always write to the original path (not the variant path)
+            FS.writeFile(`/scripts/${relPath}`, new Uint8Array(buf));
+            return new TextDecoder().decode(buf);
+          }
+          throw new Error(`Fetch ${url} failed: ${res.status}`);
+        }
         const buf = await res.arrayBuffer();
         // ensure nested dirs
         const parts = relPath.split('/');
@@ -124,7 +156,11 @@ export const patchRom = async (
           const dir = '/scripts/' + parts.slice(0, -1).join('/');
           try { FS.mkdirTree(dir); } catch {}
         }
+        // Always write to the original path (not the variant path)
         FS.writeFile(`/scripts/${relPath}`, new Uint8Array(buf));
+        if (styleVariant === 'drezz' && fetchPath !== relPath) {
+          console.log(`[patcher] Using DREZZ variant: ${fetchPath} -> ${relPath}`);
+        }
         return new TextDecoder().decode(buf);
       } catch (e) {
         console.warn('Could not fetch script', url, e);

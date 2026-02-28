@@ -6,7 +6,7 @@ import DebugPanel from './components/DebugPanel';
 import JimEditor from './components/JimEditor';
 import JimEditorSidebar from './components/JimEditorSidebar';
 import { PatcherMode, PatchConfig, RomFile, PresetOverride } from './types';
-import { patchRom, readFileAsArrayBuffer, PresetOverrides } from './services/patcherService';
+import { patchRom, readFileAsArrayBuffer, PresetOverrides, StyleVariant } from './services/patcherService';
 import { JimData } from './services';
 import { Icon } from './components/Icons';
 import InstructionsModal from './components/InstructionsModal';
@@ -38,6 +38,9 @@ const App: React.FC = () => {
   
   // Preset overrides - custom .jim files to use instead of defaults during patching
   const [presetOverrides, setPresetOverrides] = useState<PresetOverrides>(new Map());
+  
+  // Style variant for Tile Editor (persists across tab switches)
+  const [styleVariant, setStyleVariant] = useState<StyleVariant>('default');
   
   const [config, setConfig] = useState<PatchConfig>({
     mode: PatcherMode.FullBanners,
@@ -81,7 +84,7 @@ const App: React.FC = () => {
 
     try {
       const buffer = await readFileAsArrayBuffer(currentFile.data);
-      const result = await patchRom(buffer, config, currentFile.name, presetOverrides);
+      const result = await patchRom(buffer, config, currentFile.name, presetOverrides, styleVariant);
       const url = URL.createObjectURL(result.blob);
       setDownloadUrl(url);
       setDownloadFilename(result.filename);
@@ -212,6 +215,8 @@ const App: React.FC = () => {
           onPresetOverride={handlePresetOverride}
           onClearPresetOverride={handleClearPresetOverride}
           use32Teams={config.options.use32Teams}
+          styleVariant={styleVariant}
+          onStyleVariantChange={setStyleVariant}
         />
       );
     }

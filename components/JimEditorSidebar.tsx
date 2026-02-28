@@ -12,7 +12,7 @@ import {
   renderPalettesToCanvas,
 } from '../services';
 import type { ViewMode } from './JimEditor';
-import type { PresetOverrides } from '../services/patcherService';
+import type { PresetOverrides, StyleVariant } from '../services/patcherService';
 
 // Helper to get asset URL with correct base path for both local dev and GitHub Pages
 const getAssetUrl = (path: string) => {
@@ -34,6 +34,8 @@ interface JimEditorSidebarProps {
   onPresetOverride: (presetPath: string, jimData: Uint8Array, sourceName: string) => void;
   onClearPresetOverride: (presetPath: string) => void;
   use32Teams: boolean;
+  styleVariant: StyleVariant;
+  onStyleVariantChange: (variant: StyleVariant) => void;
 }
 
 // Reusable UI Components (matching SidebarControls style)
@@ -69,9 +71,6 @@ const ActionButton: React.FC<{
   </button>
 );
 
-// Style variants available for presets
-type StyleVariant = 'default' | 'drezz' | 'custom';
-
 const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   jimData,
   jimFilename,
@@ -84,16 +83,15 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   presetOverrides,
   onPresetOverride,
   onClearPresetOverride,
-  use32Teams
+  use32Teams,
+  styleVariant,
+  onStyleVariantChange
 }) => {
   const aseInputRef = useRef<HTMLInputElement>(null);
   const hasAutoLoadedRef = useRef(false);
   const [presetJimFiles, setPresetJimFiles] = useState<{ label: string; displayName: string; path: string }[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [currentFileSource, setCurrentFileSource] = useState<'preset' | 'aseprite' | 'jim' | null>(null);
-  
-  // State for style variant selection (default vs DREZZ)
-  const [styleVariant, setStyleVariant] = useState<StyleVariant>('default');
   
   // State for export dropdown
   const [openExportDropdown, setOpenExportDropdown] = useState<string | null>(null);
@@ -165,6 +163,19 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   // Track currently selected preset for reloading on style variant change
   const [currentPreset, setCurrentPreset] = useState<{ label: string; displayName: string; path: string } | null>(null);
 
+  // Restore currentPreset from jimFilename when component mounts/presets load
+  // This handles the case where we switch tabs and come back
+  useEffect(() => {
+    if (!isLoadingPresets && presetJimFiles.length > 0 && jimFilename && !currentPreset) {
+      // Try to match jimFilename to a preset (strip DREZZ suffix if present)
+      const baseFilename = jimFilename.replace(' (DREZZ)', '');
+      const matchedPreset = presetJimFiles.find(f => f.label === baseFilename);
+      if (matchedPreset) {
+        setCurrentPreset(matchedPreset);
+      }
+    }
+  }, [isLoadingPresets, presetJimFiles, jimFilename, currentPreset]);
+
   // Auto-load "Banners (28 Teams)" when presets are loaded and no file is selected
   useEffect(() => {
     if (!isLoadingPresets && presetJimFiles.length > 0 && !jimData && !hasAutoLoadedRef.current) {
@@ -181,10 +192,53 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
 
   // Reload current preset when style variant changes (skip for 'custom' which uses imports)
   useEffect(() => {
-    if (currentPreset && currentFileSource === 'preset' && styleVariant !== 'custom') {
-      handlePresetJimLoad(currentPreset);
+    if (currentPreset && styleVariant !== 'custom') {
+      // Inline the load logic to avoid stale closure issues
+      const loadPreset = async () => {
+        setIsProcessing(true);
+        setError(null);
+        
+        try {
+          // Get the path for the current style variant
+          let variantPath = currentPreset.path;
+          if (styleVariant === 'drezz') {
+            variantPath = currentPreset.path.replace(/\.jim$/i, '_drezz.jim');
+          }
+          const variantRelativePath = variantPath.replace(/^.*?wasm\/scripts\//, '');
+          
+          // Check if there's an override for this preset
+          const override = presetOverrides.get(variantRelativePath);
+          
+          if (override) {
+            const data = parseJimFile(override.jimData.buffer);
+            onJimLoad(data, override.sourceName || currentPreset.label);
+            setCurrentFileSource('aseprite');
+          } else {
+            const response = await fetch(variantPath);
+            if (!response.ok) {
+              if (styleVariant === 'drezz') {
+                throw new Error(`DREZZ variant not found for ${currentPreset.label}. Expected file: ${variantRelativePath}`);
+              }
+              throw new Error(`Failed to load ${currentPreset.label}`);
+            }
+            
+            const buffer = await response.arrayBuffer();
+            const data = parseJimFile(buffer);
+            const displayLabel = styleVariant === 'drezz' ? `${currentPreset.label} (DREZZ)` : currentPreset.label;
+            onJimLoad(data, displayLabel);
+            setCurrentFileSource('preset');
+          }
+        } catch (err) {
+          console.error('Failed to load preset JIM file:', err);
+          setError(err instanceof Error ? err.message : `Unable to load ${currentPreset.label}`);
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+      
+      loadPreset();
     }
-  }, [styleVariant]);
+  }, [styleVariant, currentPreset, presetOverrides, onJimLoad, setError, setIsProcessing]);
 
   // --- File Load Handlers ---
   const handleAsepriteFileLoad = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -428,7 +482,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setStyleVariant('default')}
+              onClick={() => onStyleVariantChange('default')}
               className={`
                 flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all
                 ${styleVariant === 'default'
@@ -439,7 +493,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
               Default
             </button>
             <button
-              onClick={() => setStyleVariant('drezz')}
+              onClick={() => onStyleVariantChange('drezz')}
               className={`
                 flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all
                 ${styleVariant === 'drezz'
@@ -450,7 +504,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
               DREZZ
             </button>
             <button
-              onClick={() => setStyleVariant('custom')}
+              onClick={() => onStyleVariantChange('custom')}
               className={`
                 flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all
                 ${styleVariant === 'custom'
