@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from './components/Layout';
 import SidebarControls from './components/SidebarControls';
 import Workspace from './components/Workspace';
@@ -104,30 +104,30 @@ const App: React.FC = () => {
     setError(null);
   };
 
-  // Tile Editor handlers
-  const handleJimLoad = (data: JimData, filename: string) => {
+  // Tile Editor handlers - memoized to prevent infinite re-render loops
+  const handleJimLoad = useCallback((data: JimData, filename: string) => {
     setJimData(data);
     setJimFilename(filename);
     setJimSelectedPalette(1);
-  };
+  }, []);
 
   // Handler for setting a preset override
-  const handlePresetOverride = (presetPath: string, jimData: Uint8Array, sourceName: string) => {
+  const handlePresetOverride = useCallback((presetPath: string, jimData: Uint8Array, sourceName: string) => {
     setPresetOverrides(prev => {
       const newMap = new Map(prev);
       newMap.set(presetPath, { presetPath, jimData, sourceName });
       return newMap;
     });
-  };
+  }, []);
 
   // Handler for clearing a preset override
-  const handleClearPresetOverride = (presetPath: string) => {
+  const handleClearPresetOverride = useCallback((presetPath: string) => {
     setPresetOverrides(prev => {
       const newMap = new Map(prev);
       newMap.delete(presetPath);
       return newMap;
     });
-  };
+  }, []);
 
   // Render content based on active tab
   const renderContent = () => {
