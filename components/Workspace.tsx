@@ -16,22 +16,22 @@ interface WorkspaceProps {
 
 const PreviewCard: React.FC<{ title: string; src: string; active: boolean }> = ({ title, src, active }) => (
   <div className={`
-    relative group overflow-hidden rounded-lg border transition-all duration-300
+    relative group overflow-hidden rounded-lg border transition-all duration-300 flex flex-col min-h-0
     ${active 
       ? 'border-slate-700 bg-slate-800/50 shadow-xl' 
       : 'border-slate-800/50 bg-slate-900/20 opacity-40 grayscale'}
   `}>
-    <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-slate-900/90 to-transparent z-10 flex justify-between items-start">
+    <div className="px-3 py-2 bg-slate-900/90 flex justify-between items-center shrink-0">
       <h4 className="text-[10px] font-bold text-slate-300 uppercase tracking-wider bg-slate-950/50 px-2 py-1 rounded backdrop-blur-md border border-slate-800">
         {title}
       </h4>
       {active && <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>}
     </div>
-    <div className="aspect-video w-full flex items-center justify-center p-4">
+    <div className="flex-1 min-h-0 w-full flex items-center justify-center px-4 pb-4 pt-1">
       <img 
         src={src} 
         alt={`${title} Preview`} 
-        className="w-full h-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105" 
+        className="max-w-full max-h-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105" 
       />
     </div>
   </div>
@@ -83,9 +83,9 @@ const Workspace: React.FC<WorkspaceProps> = ({
   // Removed the !fileLoaded blocking check to show the workspace immediately.
 
   return (
-    <div className="w-full h-full p-8 overflow-y-auto relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-end justify-between mb-8">
+    <div className="w-full h-full p-8 overflow-hidden relative flex flex-col">
+      <div className="max-w-5xl mx-auto w-full flex flex-col h-full min-h-0">
+        <div className="flex items-end justify-between mb-4 shrink-0">
             <div>
                 <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md">Preview Canvas</h2>
                 <div className="inline-block mt-2 bg-slate-900/90 px-3 py-1.5 rounded border border-slate-800 backdrop-blur-sm">
@@ -99,7 +99,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:grid-rows-2 gap-4 flex-1 min-h-0">
           <PreviewCard 
             title="Team Select Screen (BANNERS)" 
             src={TEAM_SELECT_BANNERS_PREVIEW} 
