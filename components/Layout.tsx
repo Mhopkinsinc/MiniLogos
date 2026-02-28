@@ -22,7 +22,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, sideb
 
         {/* Tab Navigation */}
         <div className="flex-1 flex justify-center">
-          <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+          <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
             {tabs.map((tab) => (
               <button
                 key={tab}
