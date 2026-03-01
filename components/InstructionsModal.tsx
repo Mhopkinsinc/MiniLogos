@@ -102,6 +102,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose, variant 
       expandedVideoRef.current.pause();
     }
     setIsExpanded(false);
+    onClose();
   };
 
   return (
@@ -125,7 +126,6 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose, variant 
               src={videoUrl}
               controls
               autoPlay
-              loop
               muted
               playsInline
               className="w-full h-auto rounded-lg"
@@ -160,7 +160,6 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose, variant 
                 <video
                   ref={videoRef}
                   src={videoUrl}
-                  loop
                   muted
                   playsInline
                   className="w-full h-auto"
