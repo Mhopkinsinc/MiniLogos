@@ -180,19 +180,65 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
     }
   }, [isLoadingPresets, presetJimFiles, jimFilename, currentPreset]);
 
-  // Auto-load "Banners (28 Teams)" when presets are loaded and no file is selected
+  // Helper to check if a preset is valid given current settings
+  const isPresetValid = (file: { label: string; path: string }) => {
+    const isBannerFile = file.label.toLowerCase().includes('banner');
+    const is32TeamPreset = file.label.toLowerCase().includes('32_teams');
+    const is28TeamPreset = file.label.toLowerCase().includes('28_teams');
+    
+    // Banners disabled in Mini Logos Only mode
+    if (isBannerFile && patchMode === PatcherMode.MiniLogosOnly) return false;
+    // Team config mismatch
+    if (use32Teams && is28TeamPreset) return false;
+    if (!use32Teams && is32TeamPreset) return false;
+    
+    return true;
+  };
+
+  // Get the first valid preset based on current settings
+  const getDefaultValidPreset = () => {
+    const teamSuffix = use32Teams ? '32_teams' : '28_teams';
+    
+    // If in Mini Logos Only mode, prefer minilogos preset
+    if (patchMode === PatcherMode.MiniLogosOnly) {
+      const minilogosPreset = presetJimFiles.find(f => 
+        f.path.toLowerCase().includes(`minilogos_${teamSuffix}.jim`)
+      );
+      if (minilogosPreset) return minilogosPreset;
+    } else {
+      // Otherwise prefer banners preset
+      const bannersPreset = presetJimFiles.find(f => 
+        f.path.toLowerCase().includes(`banners_${teamSuffix}.jim`)
+      );
+      if (bannersPreset) return bannersPreset;
+    }
+    
+    // Fall back to first valid preset
+    return presetJimFiles.find(f => isPresetValid(f)) || presetJimFiles[0];
+  };
+
+  // Auto-load appropriate preset when presets are loaded and no file is selected
   useEffect(() => {
     if (!isLoadingPresets && presetJimFiles.length > 0 && !jimData && !hasAutoLoadedRef.current) {
       hasAutoLoadedRef.current = true;
-      // Find "Banners (28 Teams)" or fall back to the first preset
-      const bannersPreset = presetJimFiles.find(f => f.path.includes('banners_28_teams.jim'));
-      const presetToLoad = bannersPreset || presetJimFiles[0];
+      const presetToLoad = getDefaultValidPreset();
       if (presetToLoad) {
         setCurrentPreset(presetToLoad);
         handlePresetJimLoad(presetToLoad);
       }
     }
   }, [isLoadingPresets, presetJimFiles, jimData]);
+
+  // Auto-switch to a valid preset when current preset becomes disabled
+  useEffect(() => {
+    if (!isLoadingPresets && presetJimFiles.length > 0 && currentPreset && !isPresetValid(currentPreset)) {
+      const validPreset = getDefaultValidPreset();
+      if (validPreset && isPresetValid(validPreset)) {
+        setCurrentPreset(validPreset);
+        handlePresetJimLoad(validPreset);
+      }
+    }
+  }, [isLoadingPresets, presetJimFiles, currentPreset, patchMode, use32Teams]);
 
   // Reload current preset when style variant changes (skip for 'custom' which uses imports)
   // Only trigger when styleVariant actually changes, not when currentPreset is first set
