@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icons';
+import { DREZZ_ICON } from '../assets/drezzIcon';
 import {
   JimData,
   parseJimFile,
@@ -552,12 +553,13 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
             <button
               onClick={() => onStyleVariantChange('drezz')}
               className={`
-                flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all
+                flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5
                 ${styleVariant === 'drezz'
                   ? 'bg-violet-600 text-white shadow-md'
                   : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-600'}
               `}
             >
+              <img src={DREZZ_ICON} alt="" className="w-4 h-4 rounded-full" />
               DREZZ
             </button>
             <button
