@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { RomFile } from '../types';
 import { Icon } from './Icons';
 
@@ -10,6 +10,14 @@ interface FileUploadProps {
 const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, currentFile }) => {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset the file input when currentFile is cleared (e.g., after "Patch New File")
+  // This ensures the same file can be selected again
+  useEffect(() => {
+    if (!currentFile && inputRef.current) {
+      inputRef.current.value = '';
+    }
+  }, [currentFile]);
 
   const handleDrag = useCallback((e: React.DragEvent, dragging: boolean) => {
     e.preventDefault();
