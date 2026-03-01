@@ -207,5 +207,5 @@
 	endif	; UseStandaloneMode
 
 	;-- Quick Testing with 30 second period length --
-	org $F7927
-		dc.b $04
+	;org $F7927
+	;	dc.b $04
