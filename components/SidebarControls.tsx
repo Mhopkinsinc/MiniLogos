@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PatcherMode, PatchConfig, PatchOptions, RomFile } from '../types';
 import FileUpload from './FileUpload';
 import { Icon } from './Icons';
+import { scanRomFileFreeSpace, formatBytes, formatHexAddress, FreeSpaceInfo } from '../services/romFreeSpaceScanner';
 
 interface SidebarControlsProps {
   config: PatchConfig;
@@ -51,6 +52,22 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
   onPatch, 
   isProcessing 
 }) => {
+  const [freeSpaceInfo, setFreeSpaceInfo] = useState<FreeSpaceInfo | null>(null);
+  const [showFreeSpaceModal, setShowFreeSpaceModal] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+
+  // Scan ROM for free space when file changes
+  useEffect(() => {
+    if (currentFile?.data) {
+      setIsScanning(true);
+      scanRomFileFreeSpace(currentFile.data)
+        .then(setFreeSpaceInfo)
+        .catch(console.error)
+        .finally(() => setIsScanning(false));
+    } else {
+      setFreeSpaceInfo(null);
+    }
+  }, [currentFile]);
 
   const handleModeChange = (mode: PatcherMode) => {
     let newOptions: PatchOptions;
@@ -88,9 +105,79 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
 
   return (
     <div className="flex flex-col h-full relative">
+      {/* Free Space Info Modal */}
+      {showFreeSpaceModal && freeSpaceInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowFreeSpaceModal(false)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-800/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-indigo-600/20 border border-indigo-500/30">
+                  <Icon name="info" className="w-4 h-4 text-indigo-400" />
+                </div>
+                <h2 className="text-sm font-bold text-white uppercase tracking-wide">ROM Free Space</h2>
+              </div>
+              <button onClick={() => setShowFreeSpaceModal(false)} className="p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
+                <Icon name="x" className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">ROM Size</p>
+                  <p className="text-sm font-mono text-slate-200">{formatBytes(freeSpaceInfo.romLength)}</p>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Free Space</p>
+                  <p className="text-sm font-mono text-green-400">{formatBytes(freeSpaceInfo.freeSpaceSize)}</p>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Free Start</p>
+                  <p className="text-sm font-mono text-slate-200">{formatHexAddress(freeSpaceInfo.freeSpaceStart)}</p>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Last Data</p>
+                  <p className="text-sm font-mono text-slate-200">{formatHexAddress(freeSpaceInfo.lastDataIndex)}</p>
+                </div>
+              </div>
+              <div className="bg-slate-800/30 rounded-lg p-3 border border-slate-700/50">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500">Free Space Usage</p>
+                  <p className="text-xs font-mono text-slate-300">{freeSpaceInfo.freeSpacePercent.toFixed(2)}%</p>
+                </div>
+                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(freeSpaceInfo.freeSpacePercent, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-500 text-center">
+                Detected by scanning trailing 0xFF padding bytes
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* File Operations */}
       <div className="p-5 border-b border-slate-800 bg-slate-900/50 shrink-0">
-        <SectionHeader icon="file" title="1. ROM File" color="text-indigo-400" />
+        <div className="flex items-center justify-between">
+          <SectionHeader icon="file" title="1. ROM File" color="text-indigo-400" />
+          <div className="flex items-center gap-2 mb-4">
+            {currentFile && isScanning && (
+              <Icon name="refresh" className="w-3.5 h-3.5 text-slate-500 animate-spin" />
+            )}
+            {currentFile && freeSpaceInfo && !isScanning && (
+              <button
+                onClick={() => setShowFreeSpaceModal(true)}
+                className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 hover:border-indigo-500/50 hover:bg-indigo-600/10 transition-all group"
+                title="View ROM free space info"
+              >
+                <Icon name="info" className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-400" />
+              </button>
+            )}
+          </div>
+        </div>
         <div className={!currentFile ? 'animate-pulse' : ''}>
           <FileUpload currentFile={currentFile} onFileSelect={onFileSelect} />
         </div>
