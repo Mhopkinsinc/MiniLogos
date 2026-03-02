@@ -59,8 +59,8 @@ const applyConfigToPatchAsm = (asmContent: string, config: PatchConfig): string 
     `$1${config.options.enableMiniLogos ? 1 : 0}`
   );
 
-  // Experimental: 32 Teams option (only applies when using MiniLogosOnly mode)
-  const use32Teams = config.mode === PatcherMode.MiniLogosOnly && config.options.use32Teams ? 1 : 0;
+  // 32 Teams option (applies to both patch modes)
+  const use32Teams = config.options.use32Teams ? 1 : 0;
   content = content.replace(/^(Use32Teams\s*=\s*)\d+/m, `$1${use32Teams}`);
 
   return content;
