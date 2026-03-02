@@ -181,6 +181,17 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
         <div className={!currentFile ? 'animate-pulse' : ''}>
           <FileUpload currentFile={currentFile} onFileSelect={onFileSelect} />
         </div>
+        <div className="mt-3 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
+          <Toggle 
+            label="30/32 Team ROM" 
+            checked={config.options.use32Teams} 
+            onChange={() => onConfigChange({
+              ...config,
+              options: { ...config.options, use32Teams: !config.options.use32Teams }
+            })}
+            tooltip="Enable 30/32 Team ROMs."
+          />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto pb-32 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
@@ -249,15 +260,6 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
                 />
               </>
             )}
-            <Toggle 
-              label="30/32 Team ROM" 
-              checked={config.options.use32Teams} 
-              onChange={() => onConfigChange({
-                ...config,
-                options: { ...config.options, use32Teams: !config.options.use32Teams }
-              })}
-              tooltip="Enable 30/32 Team ROMs."
-            />
           </div>
         </div>
       </div>
