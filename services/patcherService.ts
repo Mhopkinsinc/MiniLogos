@@ -246,7 +246,7 @@ export const patchRom = async (
     // object/output filenames to be provided as a single comma-separated
     // token (e.g. `patch.asm,output.bin`). Provide `/p` followed
     // by that combined token to match those builds.
-    const scriptToken = `patch.asm,${outputName}`;
+    const scriptToken = `patch.asm,${outputName},,${outputName}.lst`;
     const args = ['/p', scriptToken];
 
     // Debug visibility for the exact arguments passed into the module
