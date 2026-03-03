@@ -39,6 +39,7 @@ interface JimEditorSidebarProps {
   styleVariant: StyleVariant;
   onStyleVariantChange: (variant: StyleVariant) => void;
   patchMode: PatcherMode;
+  onShowTutorial?: () => void;
 }
 
 // Reusable UI Components (matching SidebarControls style)
@@ -89,7 +90,8 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
   use32Teams,
   styleVariant,
   onStyleVariantChange,
-  patchMode
+  patchMode,
+  onShowTutorial
 }) => {
   const aseInputRef = useRef<HTMLInputElement>(null);
   const hasAutoLoadedRef = useRef(false);
@@ -531,7 +533,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
         </p>
         
         {/* Style Variant Toggle */}
-        <div className="mb-4 p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
+        <div id="tour-style-variant" className="mb-4 p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-slate-300 flex items-center gap-2">
               <Icon name="palette" className="w-3.5 h-3.5 text-violet-400" />
@@ -672,7 +674,7 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
 
                 {/* Action buttons row - hide when disabled */}
                 {!isDisabled && (
-                <div className="flex items-center gap-2 px-3 pb-3">
+                <div id="tour-export-import" className="flex items-center gap-2 px-3 pb-3">
                   {/* Import button - only enabled when Custom style is selected */}
                   <button
                     onClick={() => handleImportForPreset(file)}
@@ -804,6 +806,20 @@ const JimEditorSidebar: React.FC<JimEditorSidebarProps> = ({
             </p>
             <p className="text-xs text-green-400 font-mono truncate" title={jimFilename}>{jimFilename}</p>
           </div>
+        </div>
+      )}
+
+      {/* Video Tutorial Button */}
+      {onShowTutorial && (
+        <div className="p-4 border-t border-slate-800 bg-slate-900/80 shrink-0">
+          <button
+            id="tour-tile-video-tutorial"
+            onClick={onShowTutorial}
+            className="w-full flex items-center justify-center py-2.5 rounded-lg text-sm font-medium transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600"
+          >
+            <Icon name="play" className="w-4 h-4 mr-2" />
+            Video Tutorial
+          </button>
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@ import DebugPanel from './components/DebugPanel';
 import JimEditor from './components/JimEditor';
 import JimEditorSidebar from './components/JimEditorSidebar';
 import GuidedTour from './components/GuidedTour';
+import TileEditorTour from './components/TileEditorTour';
 import { PatcherMode, PatchConfig, RomFile, PresetOverride } from './types';
 import { patchRom, readFileAsArrayBuffer, PresetOverrides, StyleVariant } from './services/patcherService';
 import { JimData } from './services';
@@ -29,7 +30,6 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showRomInstructions, setShowRomInstructions] = useState(false);
   const [showTileInstructions, setShowTileInstructions] = useState(false);
-  const [hasShownTileInstructions, setHasShownTileInstructions] = useState(false);
 
   // Tile Editor state (persists across tab switches until new file loaded)
   const [jimData, setJimData] = useState<JimData | null>(null);
@@ -60,13 +60,6 @@ const App: React.FC = () => {
       if (downloadUrl) URL.revokeObjectURL(downloadUrl);
     };
   }, [downloadUrl]);
-
-  useEffect(() => {
-    if (activeTab === 'Tile Editor' && !hasShownTileInstructions) {
-      setShowTileInstructions(true);
-      setHasShownTileInstructions(true);
-    }
-  }, [activeTab, hasShownTileInstructions]);
 
   const handleFileSelect = (file: RomFile) => {
     setCurrentFile(file);
@@ -219,6 +212,7 @@ const App: React.FC = () => {
           styleVariant={styleVariant}
           onStyleVariantChange={setStyleVariant}
           patchMode={config.mode}
+          onShowTutorial={() => setShowTileInstructions(true)}
         />
       );
     }
@@ -264,6 +258,9 @@ const App: React.FC = () => {
 
       {/* Guided Tour - only active on ROM Patcher tab */}
       {activeTab === 'ROM Patcher' && <GuidedTour />}
+
+      {/* Tile Editor Tour - only active on Tile Editor tab */}
+      {activeTab === 'Tile Editor' && <TileEditorTour />}
 
       {/* Debug Panel - Only shown in dev mode on ROM Patcher tab */}
       {activeTab === 'ROM Patcher' && (

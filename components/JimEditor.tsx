@@ -122,7 +122,7 @@ const JimEditor: React.FC<JimEditorProps> = ({
           </div>
 
           {/* Zoom Controls */}
-          <div className="flex items-center bg-slate-950 rounded-md p-1 border border-slate-800">
+          <div id="tour-zoom-controls" className="flex items-center bg-slate-950 rounded-md p-1 border border-slate-800">
             <button 
               onClick={handleZoomOut}
               disabled={zoom <= 1}
@@ -155,7 +155,7 @@ const JimEditor: React.FC<JimEditorProps> = ({
         </div>
 
         {/* Main Canvas */}
-        <div className="flex-1 min-h-0 bg-slate-900 rounded-lg border border-slate-800 overflow-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
+        <div id="tour-map-canvas" className="flex-1 min-h-0 bg-slate-900 rounded-lg border border-slate-800 overflow-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
           <div 
             className="p-4 inline-flex items-center justify-center"
             style={{ minWidth: '100%', minHeight: '100%' }}
