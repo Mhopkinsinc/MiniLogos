@@ -36,9 +36,9 @@ const Toggle: React.FC<{ label: string; checked: boolean; onChange: () => void; 
   </div>
 );
 
-const SectionHeader: React.FC<{ icon: string; title: string; color?: string }> = ({ icon, title, color = "text-blue-100" }) => (
-  <div className="flex items-center gap-3 mb-4">
-    <div className="p-2 rounded-lg bg-slate-800 border border-slate-700 shadow-sm">
+const SectionHeader: React.FC<{ icon: string; title: string; color?: string; compact?: boolean }> = ({ icon, title, color = "text-blue-100", compact = false }) => (
+  <div className={`flex items-center gap-3 ${compact ? 'mb-2' : 'mb-4'}`}>
+    <div className={`${compact ? 'p-1.5' : 'p-2'} rounded-lg bg-slate-800 border border-slate-700 shadow-sm`}>
       <Icon name={icon} className={`w-4 h-4 ${color}`} />
     </div>
     <h3 className={`text-xs font-bold uppercase tracking-widest ${color}`}>{title}</h3>
@@ -162,10 +162,10 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
       )}
 
       {/* File Operations */}
-      <div id="tour-rom-file" className="p-5 border-b border-slate-800 bg-slate-900/50 shrink-0">
+      <div id="tour-rom-file" className="p-4 border-b border-slate-800 bg-slate-900/50 shrink-0">
         <div className="flex items-center justify-between">
-          <SectionHeader icon="file" title="1. ROM File" color="text-indigo-400" />
-          <div className="flex items-center gap-2 mb-4">
+          <SectionHeader icon="file" title="1. ROM File" color="text-indigo-400" compact />
+          <div className="flex items-center gap-2 mb-2">
             {currentFile && isScanning && (
               <Icon name="refresh" className="w-3.5 h-3.5 text-slate-500 animate-spin" />
             )}
@@ -183,7 +183,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
         <div className={!currentFile ? 'animate-pulse' : ''}>
           <FileUpload currentFile={currentFile} onFileSelect={onFileSelect} />
         </div>
-        <div className="mt-3 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
+        <div className="mt-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-800/50">
           <Toggle 
             label="30/32 Team ROM" 
             checked={config.options.use32Teams} 

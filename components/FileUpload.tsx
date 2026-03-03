@@ -55,7 +55,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, currentFile }) =>
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
         className={`
-          relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all duration-200 group
+          relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all duration-200 group
           ${isDragging 
             ? 'border-blue-500 bg-blue-500/10' 
             : currentFile 
@@ -72,11 +72,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, currentFile }) =>
           accept=".bin,.md,.smd,.gen"
         />
 
-        <div className="flex flex-col items-center justify-center space-y-2">
+        <div className="flex flex-col items-center justify-center space-y-1.5">
           {currentFile ? (
             <>
-              <div className="w-10 h-10 bg-green-600 rounded flex items-center justify-center shadow-lg shadow-green-900/50">
-                <Icon name="check" className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center shadow-lg shadow-green-900/50">
+                <Icon name="check" className="w-4 h-4 text-white" />
               </div>
               <div className="text-left w-full overflow-hidden">
                 <h3 className="text-xs font-bold text-green-400 truncate text-center">{currentFile.name}</h3>
@@ -85,8 +85,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, currentFile }) =>
             </>
           ) : (
             <>
-              <div className={`w-10 h-10 rounded flex items-center justify-center transition-colors ${isDragging ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 group-hover:text-slate-200'}`}>
-                <Icon name="upload" className="w-5 h-5" />
+              <div className={`w-8 h-8 rounded flex items-center justify-center transition-colors ${isDragging ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 group-hover:text-slate-200'}`}>
+                <Icon name="upload" className="w-4 h-4" />
               </div>
               <div>
                 <h3 className="text-xs font-semibold text-slate-300 group-hover:text-white">
