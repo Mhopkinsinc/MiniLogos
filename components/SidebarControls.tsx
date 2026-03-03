@@ -282,7 +282,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
           onClick={onPatch}
           disabled={isApplyDisabled}
           className={`
-             w-full flex items-center justify-center py-4 rounded-xl font-bold text-sm transition-all shadow-2xl uppercase tracking-wider
+             w-full flex items-center justify-center py-2.5 rounded-lg font-bold text-sm transition-all shadow-2xl uppercase tracking-wider
             ${isApplyDisabled
               ? 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700' 
               : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border border-blue-500/50 shadow-blue-900/40 hover:shadow-blue-900/60 active:scale-[0.98] ring-1 ring-white/10'
