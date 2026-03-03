@@ -11,6 +11,7 @@ interface SidebarControlsProps {
   onFileSelect: (file: RomFile) => void;
   onPatch: () => void;
   isProcessing: boolean;
+  onShowTutorial?: () => void;
 }
 
 const Toggle: React.FC<{ label: string; checked: boolean; onChange: () => void; disabled?: boolean; tooltip?: string }> = ({ label, checked, onChange, disabled, tooltip }) => (
@@ -50,7 +51,8 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
   currentFile, 
   onFileSelect, 
   onPatch, 
-  isProcessing 
+  isProcessing,
+  onShowTutorial
 }) => {
   const [freeSpaceInfo, setFreeSpaceInfo] = useState<FreeSpaceInfo | null>(null);
   const [showFreeSpaceModal, setShowFreeSpaceModal] = useState(false);
@@ -160,7 +162,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
       )}
 
       {/* File Operations */}
-      <div className="p-5 border-b border-slate-800 bg-slate-900/50 shrink-0">
+      <div id="tour-rom-file" className="p-5 border-b border-slate-800 bg-slate-900/50 shrink-0">
         <div className="flex items-center justify-between">
           <SectionHeader icon="file" title="1. ROM File" color="text-indigo-400" />
           <div className="flex items-center gap-2 mb-4">
@@ -196,7 +198,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
 
       <div className="flex-1 overflow-y-auto pb-32 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
         {/* Core Mode */}
-        <div className="p-5 border-b border-slate-800">
+        <div id="tour-patch-mode" className="p-5 border-b border-slate-800">
           <SectionHeader icon="cpu" title="2. Patch Mode" color="text-sky-400" />
           <div className="space-y-2">
             <button
@@ -233,7 +235,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
         </div>
 
         {/* Feature Toggles */}
-        <div className="p-5">
+        <div id="tour-features" className="p-5">
           <SectionHeader icon="layers" title="3. Features" color="text-amber-400" />
           <div className="space-y-1 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
             <Toggle 
@@ -266,6 +268,16 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
 
       {/* Action Footer */}
        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent z-20">
+        {onShowTutorial && (
+          <button
+            id="tour-video-tutorial"
+            onClick={onShowTutorial}
+            className="w-full flex items-center justify-center py-2.5 mb-3 rounded-lg text-sm font-medium transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600"
+          >
+            <Icon name="play" className="w-4 h-4 mr-2" />
+            Video Tutorial
+          </button>
+        )}
         <button
           onClick={onPatch}
           disabled={isApplyDisabled}

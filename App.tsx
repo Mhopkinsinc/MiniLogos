@@ -5,6 +5,7 @@ import Workspace from './components/Workspace';
 import DebugPanel from './components/DebugPanel';
 import JimEditor from './components/JimEditor';
 import JimEditorSidebar from './components/JimEditorSidebar';
+import GuidedTour from './components/GuidedTour';
 import { PatcherMode, PatchConfig, RomFile, PresetOverride } from './types';
 import { patchRom, readFileAsArrayBuffer, PresetOverrides, StyleVariant } from './services/patcherService';
 import { JimData } from './services';
@@ -26,7 +27,7 @@ const App: React.FC = () => {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [downloadFilename, setDownloadFilename] = useState<string>('patched.bin');
   const [error, setError] = useState<string | null>(null);
-  const [showRomInstructions, setShowRomInstructions] = useState(true);
+  const [showRomInstructions, setShowRomInstructions] = useState(false);
   const [showTileInstructions, setShowTileInstructions] = useState(false);
   const [hasShownTileInstructions, setHasShownTileInstructions] = useState(false);
 
@@ -229,6 +230,7 @@ const App: React.FC = () => {
         onFileSelect={handleFileSelect}
         onPatch={handlePatch}
         isProcessing={isProcessing}
+        onShowTutorial={() => setShowRomInstructions(true)}
       />
     );
   };
@@ -259,6 +261,9 @@ const App: React.FC = () => {
       {activeTab === 'Tile Editor' && showTileInstructions && (
         <InstructionsModal variant="tile" onClose={() => setShowTileInstructions(false)} />
       )}
+
+      {/* Guided Tour - only active on ROM Patcher tab */}
+      {activeTab === 'ROM Patcher' && <GuidedTour />}
 
       {/* Debug Panel - Only shown in dev mode on ROM Patcher tab */}
       {activeTab === 'ROM Patcher' && (

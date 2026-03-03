@@ -26,6 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, sideb
             {tabs.map((tab) => (
               <button
                 key={tab}
+                id={tab === 'Tile Editor' ? 'tour-tile-editor' : undefined}
                 onClick={() => onTabChange(tab)}
                 className={`
                   px-6 py-1.5 text-xs font-medium rounded-md transition-all
