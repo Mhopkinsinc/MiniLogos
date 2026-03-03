@@ -236,30 +236,30 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
         <div className="p-5">
           <SectionHeader icon="layers" title="3. Features" color="text-amber-400" />
           <div className="space-y-1 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
-            {config.mode === PatcherMode.FullBanners && (
-              <>
-                <Toggle 
-                  label="Team Select Banners" 
-                  checked={config.options.enableTeamSelectBanners} 
-                  onChange={() => handleOptionToggle('enableTeamSelectBanners')} 
-                />
-                <Toggle 
-                  label="In-Game Banners" 
-                  checked={config.options.enableInGameBanners} 
-                  onChange={() => handleOptionToggle('enableInGameBanners')} 
-                />
-                <Toggle 
-                  label="Playoff Brackets" 
-                  checked={config.options.enablePlayoffBanners} 
-                  onChange={() => handleOptionToggle('enablePlayoffBanners')} 
-                />
-                <Toggle 
-                  label="Mini Logos" 
-                  checked={config.options.enableMiniLogos} 
-                  onChange={() => handleOptionToggle('enableMiniLogos')} 
-                />
-              </>
-            )}
+            <Toggle 
+              label="Team Select Banners" 
+              checked={config.mode === PatcherMode.FullBanners ? config.options.enableTeamSelectBanners : false} 
+              onChange={() => handleOptionToggle('enableTeamSelectBanners')} 
+              disabled={config.mode === PatcherMode.MiniLogosOnly}
+            />
+            <Toggle 
+              label="In-Game Banners" 
+              checked={config.mode === PatcherMode.FullBanners ? config.options.enableInGameBanners : false} 
+              onChange={() => handleOptionToggle('enableInGameBanners')} 
+              disabled={config.mode === PatcherMode.MiniLogosOnly}
+            />
+            <Toggle 
+              label="Playoff Brackets" 
+              checked={config.mode === PatcherMode.FullBanners ? config.options.enablePlayoffBanners : false} 
+              onChange={() => handleOptionToggle('enablePlayoffBanners')} 
+              disabled={config.mode === PatcherMode.MiniLogosOnly}
+            />
+            <Toggle 
+              label="Mini Logos" 
+              checked={config.options.enableMiniLogos} 
+              onChange={() => handleOptionToggle('enableMiniLogos')} 
+              disabled={config.mode === PatcherMode.MiniLogosOnly}
+            />
           </div>
         </div>
       </div>
