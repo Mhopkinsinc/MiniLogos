@@ -15,7 +15,7 @@ interface SidebarControlsProps {
 }
 
 const Toggle: React.FC<{ label: string; checked: boolean; onChange: () => void; disabled?: boolean; tooltip?: string }> = ({ label, checked, onChange, disabled, tooltip }) => (
-  <div className={`flex items-center justify-between py-2 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+  <div className={`flex items-center justify-between py-1.5 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
     <span className="text-sm text-slate-300 font-medium flex items-center gap-1.5">
       {label}
       {tooltip && (
@@ -196,14 +196,14 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-32 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
+      <div className="flex-1 overflow-y-auto pb-28 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
         {/* Core Mode */}
-        <div id="tour-patch-mode" className="p-5 border-b border-slate-800">
-          <SectionHeader icon="cpu" title="2. Patch Mode" color="text-sky-400" />
-          <div className="space-y-2">
+        <div id="tour-patch-mode" className="p-4 border-b border-slate-800">
+          <SectionHeader icon="cpu" title="2. Patch Mode" color="text-sky-400" compact />
+          <div className="space-y-1.5">
             <button
               onClick={() => handleModeChange(PatcherMode.FullBanners)}
-              className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all border relative overflow-hidden group ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all border relative overflow-hidden group ${
                 config.mode === PatcherMode.FullBanners 
                   ? 'bg-blue-600/10 border-blue-500/50 text-white shadow-[0_0_15px_rgba(37,99,235,0.15)]' 
                   : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-800'
@@ -218,7 +218,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
             </button>
             <button
               onClick={() => handleModeChange(PatcherMode.MiniLogosOnly)}
-              className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all border relative overflow-hidden group ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all border relative overflow-hidden group ${
                 config.mode === PatcherMode.MiniLogosOnly 
                   ? 'bg-blue-600/10 border-blue-500/50 text-white shadow-[0_0_15px_rgba(37,99,235,0.15)]' 
                   : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-800'
@@ -235,9 +235,9 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
         </div>
 
         {/* Feature Toggles */}
-        <div id="tour-features" className="p-5">
-          <SectionHeader icon="layers" title="3. Features" color="text-amber-400" />
-          <div className="space-y-1 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
+        <div id="tour-features" className="p-4">
+          <SectionHeader icon="layers" title="3. Features" color="text-amber-400" compact />
+          <div className="space-y-0 bg-slate-900/50 p-1.5 rounded-lg border border-slate-800/50">
             <Toggle 
               label="Team Select Banners" 
               checked={config.mode === PatcherMode.FullBanners ? config.options.enableTeamSelectBanners : false} 
@@ -267,7 +267,7 @@ const SidebarControls: React.FC<SidebarControlsProps> = ({
       </div>
 
       {/* Action Footer */}
-       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent z-20">
+       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent z-20">
         {onShowTutorial && (
           <button
             id="tour-video-tutorial"
