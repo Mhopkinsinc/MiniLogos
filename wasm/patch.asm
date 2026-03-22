@@ -67,6 +67,11 @@ EnableMiniLogos = 1			; Show mini logos on scoreboard/power play display
 ; Set RomEndAddress to current location counter (end of ROM With new code added)
 RomEndAddress	= *
 
+;-- SRAM Patch by @chaos
+	IF Use32Teams
+		include scripts\minilogos\SRAM_code.asm			; SRAM patch code
+	ENDIF
+
 ;-- Hijack patches (must come after new code to avoid ORG conflicts) --
-	include scripts\minilogos\banners_hijacks.asm		; All ROM hijacks
+	include scripts\minilogos\banners_hijacks.asm	; All ROM hijacks
 CustomCodeSize	= RomEndAddress-NewCodeAddress
